@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>生活冒險家 - 晨間簡報</title>
+    <title>生活冒險家 - 療癒記帳</title>
     
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -24,8 +24,10 @@
             --text-muted: #8A9A90;    /* 淺灰綠文字 */
             --green-deep: #4A7C59;    /* 深綠 */
             --green-soft: #A3B899;    /* 淺綠 */
-            --yellow-warm: #EED7A1;   /* 溫暖黃 */
-            --red-soft: #D98C8C;      /* 柔和紅 (警示) */
+            --brown-dirt: #D4A373;    /* 泥土/食物色 */
+            --red-soft: #D98C8C;      /* 柔和紅/購物色 */
+            --water-blue: #A8C4D9;    /* 水波紋/交通色 */
+            --yellow-sun: #EED7A1;    /* 陽光經驗值 */
         }
 
         body {
@@ -34,81 +36,78 @@
             font-family: 'Nunito', 'Segoe UI', system-ui, sans-serif;
             -webkit-tap-highlight-color: transparent;
             overscroll-behavior-y: none;
-            overflow-x: hidden;
         }
 
         ::-webkit-scrollbar { display: none; }
 
-        /* 卡片共用設定 */
-        .briefing-card {
+        /* --- Bento Box 卡片 --- */
+        .bento-card {
             background-color: var(--card-white);
             border-radius: 32px;
-            box-shadow: 0 12px 32px rgba(44, 62, 53, 0.05), 0 2px 8px rgba(44, 62, 53, 0.02);
+            box-shadow: 0 8px 24px rgba(74, 124, 89, 0.04), 0 2px 8px rgba(74, 124, 89, 0.02);
             border: 1px solid rgba(163, 184, 153, 0.15);
-            height: 100%;
-            display: flex;
-            flex-direction: column;
+            padding: 24px;
             position: relative;
             overflow: hidden;
+            margin-bottom: 16px;
         }
 
-        /* 警告光暈 (用於 Radar Card) */
-        .glow-warning {
-            box-shadow: 0 0 40px rgba(238, 215, 161, 0.4), inset 0 0 20px rgba(238, 215, 161, 0.2);
-            border: 1px solid rgba(238, 215, 161, 0.5);
+        /* --- 動態水位 --- */
+        .water-container {
+            position: absolute; bottom: 0; left: 0; right: 0; height: 120px; z-index: 0; pointer-events: none;
         }
+        .wave {
+            position: absolute; bottom: -50px; left: -50%; width: 200%; height: 200px;
+            background-color: var(--water-blue); border-radius: 40%; opacity: 0.3;
+            animation: drift 7s infinite linear;
+        }
+        .wave:nth-child(2) { bottom: -60px; left: -40%; background-color: #82A8C7; animation: drift 9s infinite linear reverse; opacity: 0.4; }
+        @keyframes drift { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
 
-        /* Bento 網格小方塊 */
-        .bento-item {
-            background: #F4F5F3;
-            border-radius: 24px;
-            padding: 16px;
+        /* --- 任務打勾動畫 --- */
+        .task-checkbox {
+            width: 24px; height: 24px; border-radius: 8px; border: 2px solid var(--text-muted);
+            display: flex; align-items: center; justify-content: center;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
+        .task-done {
+            background-color: var(--green-deep); border-color: var(--green-deep);
+            animation: popIn 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        @keyframes popIn { 0% { transform: scale(0.8); } 50% { transform: scale(1.2); } 100% { transform: scale(1); } }
 
-        /* 按鈕樣式 */
-        .btn-primary {
-            background-color: var(--text-dark);
-            color: var(--bg-cream);
-            border-radius: 20px;
-            padding: 16px;
-            font-weight: bold;
-            transition: transform 0.15s, opacity 0.15s;
-            text-align: center;
-        }
-        .btn-primary:active { transform: scale(0.96); }
-        .btn-primary:disabled { opacity: 0.5; transform: none; }
+        /* --- 經驗值進度條 --- */
+        .exp-bar { height: 8px; background-color: #E8EBE9; border-radius: 999px; overflow: hidden; }
+        .exp-fill { height: 100%; background-color: var(--yellow-sun); transition: width 0.5s ease-out; }
 
-        .btn-outline {
-            background-color: transparent;
-            color: var(--text-dark);
-            border: 2px solid var(--text-muted);
-            border-radius: 20px;
-            padding: 12px;
-            font-weight: bold;
-            transition: transform 0.15s;
-            text-align: center;
-        }
-        .btn-outline:active { transform: scale(0.96); background-color: rgba(138, 154, 144, 0.1); }
+        /* --- 統計進度條 --- */
+        .stat-bar { height: 10px; background-color: #E8EBE9; border-radius: 999px; overflow: hidden; }
+        .stat-fill { height: 100%; border-radius: 999px; transition: width 1s ease-out; }
 
-        /* 動畫 */
-        .fade-in-up {
-            animation: fadeInUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-            opacity: 0;
-            transform: translateY(20px);
+        /* --- 底部選單 --- */
+        .fab-btn {
+            background-color: var(--text-dark); color: var(--bg-cream); border-radius: 24px;
+            display: flex; align-items: center; justify-content: center;
+            box-shadow: 0 8px 16px rgba(44, 62, 53, 0.2); transition: transform 0.15s;
         }
-        @keyframes fadeInUp {
-            to { opacity: 1; transform: translateY(0); }
+        .fab-btn:active { transform: scale(0.92); }
+        .bottom-sheet {
+            background: var(--card-white); border-top-left-radius: 40px; border-top-right-radius: 40px;
+            box-shadow: 0 -10px 40px rgba(0,0,0,0.1); max-height: 85vh; overflow-y: auto;
         }
+        .input-eco {
+            background: #F4F5F3; border: 2px solid transparent; border-radius: 20px; padding: 16px 20px; width: 100%;
+            color: var(--text-dark); font-weight: bold; outline: none; transition: 0.2s;
+        }
+        .input-eco:focus { border-color: var(--green-soft); background: #fff; box-shadow: 0 4px 12px rgba(163, 184, 153, 0.15); }
 
         /* Toast 提示 */
         .toast {
             position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
-            background: var(--text-dark); color: white;
-            padding: 12px 24px; border-radius: 999px;
-            font-weight: bold; font-size: 14px;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
-            z-index: 100;
+            background: var(--text-dark); color: white; padding: 12px 24px; border-radius: 999px;
+            font-weight: bold; font-size: 14px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); z-index: 100;
             animation: slideDown 0.3s cubic-bezier(0.16, 1, 0.3, 1), fadeOut 0.3s 2.7s forwards;
+            display: flex; align-items: center; white-space: nowrap;
         }
         @keyframes slideDown { from { top: -50px; opacity: 0; } to { top: 20px; opacity: 1; } }
         @keyframes fadeOut { to { opacity: 0; visibility: hidden; } }
@@ -118,277 +117,364 @@
     <div id="root"></div>
 
     <script type="text/babel">
-        const { useState, useEffect, useRef } = React;
+        const { useState, useEffect } = React;
 
-        // --- 模擬資料庫 ---
-        const USER_STATE = {
-            status: 'overspent', // 昨天狀態：'overspent' (超支), 'good' (健康), 'sad' (心情低落)
-            budget: 30000,
-            spent: 12500,
-            fixedRatio: 40,
-            topCategory: '餐飲美食',
+        // --- 模擬資料與初始狀態 ---
+        const INITIAL_STATE = {
+            // 玩家狀態 (RPG 元素)
+            player: { level: 1, exp: 40, maxExp: 100 },
+            assets: 52400,
+            
+            // 每日任務
+            tasks: {
+                expense: { title: '記錄一筆開銷', done: false, rewardExp: 20, rewardMoney: 50 },
+                diary: { title: '寫下今日日記', done: false, rewardExp: 30, rewardMoney: 100 },
+            },
+
+            // 本月花費明細 (用於統計)
+            expenses: [
+                { id: 1, amount: 4500, category: 'food', date: '2023-10-01' },
+                { id: 2, amount: 2100, category: 'shopping', date: '2023-10-05' },
+                { id: 3, amount: 850, category: 'transport', date: '2023-10-10' },
+                { id: 4, amount: 1200, category: 'life', date: '2023-10-12' },
+                { id: 5, amount: 350, category: 'food', date: '2023-10-20' },
+            ]
         };
 
-        const INITIAL_BILLS = [
-            { id: 'b1', name: 'Netflix 訂閱', amount: 390, daysLeft: 3, type: 'sub' },
-            { id: 'b2', name: '六月份手機費', amount: 799, daysLeft: 5, type: 'bill' },
-            { id: 'b3', name: '投資定期定額', amount: 5000, daysLeft: 12, type: 'invest' },
-        ];
-
-        // 根據狀態生成的動態金句
-        const getQuote = (status) => {
-            if (status === 'overspent') return "不要為打翻的牛奶哭泣，也不要為昨日的花費焦慮。\n今天，又是能重新掌握自己的一天。";
-            if (status === 'sad') return "允許自己偶爾停下腳步。\n今天的預算很充足，去買杯好咖啡安慰自己吧。";
-            return "你的生活節奏無比優雅。\n繼續保持這份從容，讓今天的自己也閃閃發光。";
+        const CATEGORY_CONFIG = {
+            food: { label: '🍔 餐飲美食', color: 'var(--brown-dirt)' },
+            shopping: { label: '🛍️ 購物治裝', color: 'var(--red-soft)' },
+            transport: { label: '🚗 交通出行', color: 'var(--water-blue)' },
+            life: { label: '🏠 生活雜項', color: 'var(--green-soft)' }
         };
 
         function App() {
-            // --- 狀態管理 ---
-            const [currentCard, setCurrentCard] = useState(0);
-            const [bills, setBills] = useState(INITIAL_BILLS);
-            const [taskCompleted, setTaskCompleted] = useState(false);
+            const [data, setData] = useState(INITIAL_STATE);
+            const [showActionMenu, setShowActionMenu] = useState(false);
+            const [activeForm, setActiveForm] = useState(null);
             const [toastMsg, setToastMsg] = useState(null);
             
-            // 滑動手勢相關 (Swipe)
-            const [touchStart, setTouchStart] = useState(null);
-            const [touchEnd, setTouchEnd] = useState(null);
-            const minSwipeDistance = 50;
+            // 表單暫存
+            const [tempAmount, setTempAmount] = useState('');
+            const [tempCategory, setTempCategory] = useState('food');
+            const [tempText, setTempText] = useState('');
 
-            const onTouchStart = (e) => {
-                setTouchEnd(null);
-                setTouchStart(e.targetTouches[0].clientX);
-            };
-
-            const onTouchMove = (e) => setTouchEnd(e.targetTouches[0].clientX);
-
-            const onTouchEnd = () => {
-                if (!touchStart || !touchEnd) return;
-                const distance = touchStart - touchEnd;
-                const isLeftSwipe = distance > minSwipeDistance;
-                const isRightSwipe = distance < -minSwipeDistance;
-
-                if (isLeftSwipe && currentCard < 2) setCurrentCard(prev => prev + 1);
-                if (isRightSwipe && currentCard > 0) setCurrentCard(prev => prev - 1);
-            };
-
-            // 顯示 Toast 提示
+            // --- 提示與升級系統 ---
             const showToast = (msg) => {
                 setToastMsg(msg);
                 setTimeout(() => setToastMsg(null), 3000);
             };
 
+            const gainRewards = (exp, money) => {
+                setData(prev => {
+                    let newExp = prev.player.exp + exp;
+                    let newLevel = prev.player.level;
+                    let newMaxExp = prev.player.maxExp;
+                    
+                    if (newExp >= newMaxExp) {
+                        newExp -= newMaxExp;
+                        newLevel += 1;
+                        newMaxExp = Math.floor(newMaxExp * 1.5);
+                        setTimeout(() => showToast(`🎉 升級了！成為 Lv.${newLevel} 園丁！`), 800);
+                    }
+
+                    return {
+                        ...prev,
+                        assets: prev.assets + money,
+                        player: { level: newLevel, exp: newExp, maxExp: newMaxExp }
+                    };
+                });
+            };
+
             // --- 互動邏輯 ---
-            const handleCancelSub = (bill) => {
-                setBills(prev => prev.filter(b => b.id !== bill.id));
-                showToast(`✨ 果斷捨棄！已取消訂閱並回收虛擬收入 $${bill.amount}`);
+            const handleRecordExpense = () => {
+                if (!tempAmount) return;
+                const amount = parseInt(tempAmount);
+                
+                const newExpense = {
+                    id: Date.now(),
+                    amount: amount,
+                    category: tempCategory,
+                    date: new Date().toISOString()
+                };
+
+                setData(prev => {
+                    const newState = {
+                        ...prev,
+                        assets: prev.assets - amount,
+                        expenses: [...prev.expenses, newExpense]
+                    };
+
+                    // 檢查解任務
+                    if (!prev.tasks.expense.done) {
+                        newState.tasks = { ...prev.tasks, expense: { ...prev.tasks.expense, done: true } };
+                        setTimeout(() => {
+                            gainRewards(prev.tasks.expense.rewardExp, prev.tasks.expense.rewardMoney);
+                            showToast(`✨ 任務完成！獲得 ☀️${prev.tasks.expense.rewardExp} 💧${prev.tasks.expense.rewardMoney}`);
+                        }, 300);
+                    } else {
+                        showToast(`💸 成功紀錄花費 $${amount}`);
+                    }
+                    return newState;
+                });
+                
+                setTempAmount(''); setActiveForm(null); setShowActionMenu(false);
             };
 
-            const handlePayBill = (bill) => {
-                setBills(prev => prev.filter(b => b.id !== bill.id));
-                showToast(`✅ 已確認準備扣款：${bill.name}`);
+            const handleRecordDiary = () => {
+                if (!tempText) return;
+                
+                setData(prev => {
+                    const newState = { ...prev };
+                    if (!prev.tasks.diary.done) {
+                        newState.tasks = { ...prev.tasks, diary: { ...prev.tasks.diary, done: true } };
+                        setTimeout(() => {
+                            gainRewards(prev.tasks.diary.rewardExp, prev.tasks.diary.rewardMoney);
+                            showToast(`🌼 日記完成！獲得 ☀️${prev.tasks.diary.rewardExp} 💧${prev.tasks.diary.rewardMoney}`);
+                        }, 300);
+                    } else {
+                        showToast(`📝 日記已更新`);
+                    }
+                    return newState;
+                });
+                
+                setTempText(''); setActiveForm(null); setShowActionMenu(false);
             };
 
-            const handleCompleteTask = () => {
-                setTaskCompleted(true);
-                showToast("🎉 任務完成！獲得新金句卡片一張");
-                setTimeout(() => {
-                    if (currentCard < 2) setCurrentCard(2); // 自動跳轉下一張
-                }, 1000);
+            // --- 計算收支統計 ---
+            const calculateStats = () => {
+                let total = 0;
+                const summary = { food: 0, shopping: 0, transport: 0, life: 0 };
+                
+                data.expenses.forEach(exp => {
+                    if (summary[exp.category] !== undefined) {
+                        summary[exp.category] += exp.amount;
+                        total += exp.amount;
+                    }
+                });
+
+                // 轉換為陣列並排序
+                const sortedStats = Object.keys(summary)
+                    .map(key => ({
+                        key,
+                        amount: summary[key],
+                        percent: total === 0 ? 0 : Math.round((summary[key] / total) * 100),
+                        ...CATEGORY_CONFIG[key]
+                    }))
+                    .sort((a, b) => b.amount - a.amount);
+
+                return { total, stats: sortedStats };
             };
 
-            // --- 日期格式化 ---
-            const today = new Date();
-            const dateString = `${today.getMonth() + 1}月${today.getDate()}日`;
-            const days = ['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六'];
-            const dayString = days[today.getDay()];
+            // --- UI 渲染 ---
 
-            // --- 卡片渲染 ---
-
-            // 🃏 卡片一：今日心靈與狀態 (The Soul Card)
-            const renderSoulCard = () => (
-                <div className="briefing-card p-8 flex flex-col justify-between" style={{ minWidth: '100%' }}>
-                    <div className="fade-in-up" style={{ animationDelay: '0.1s' }}>
-                        <div className="flex items-center space-x-2 mb-2 text-[var(--text-muted)] font-bold">
-                            <span className="text-xl">🌤️</span>
-                            <span>{dateString} · {dayString}</span>
-                        </div>
-                        <div className="w-10 h-1 bg-[var(--green-soft)] rounded-full mt-4"></div>
-                    </div>
-
-                    <div className="flex-1 flex flex-col justify-center fade-in-up" style={{ animationDelay: '0.3s' }}>
-                        <h2 className="text-2xl font-black leading-relaxed tracking-wide text-[var(--text-dark)] whitespace-pre-line">
-                            {getQuote(USER_STATE.status)}
-                        </h2>
-                    </div>
-
-                    <div className="text-center fade-in-up" style={{ animationDelay: '0.5s' }}>
-                        <p className="text-xs font-bold text-[var(--text-muted)] flex items-center justify-center animate-pulse">
-                            向左滑動開始晨間簡報 <span className="ml-2">→</span>
-                        </p>
-                    </div>
-                </div>
-            );
-
-            // 🃏 卡片二：財務儀表板與月統計 (The Compass Card)
-            const renderCompassCard = () => {
-                const available = USER_STATE.budget - USER_STATE.spent;
-                const percent = (USER_STATE.spent / USER_STATE.budget) * 100;
-                const isTight = percent > 80;
-
+            // 1. 玩家狀態與資產 (Header)
+            const renderProfile = () => {
+                const percent = (data.player.exp / data.player.maxExp) * 100;
                 return (
-                    <div className="briefing-card p-6" style={{ minWidth: '100%' }}>
-                        <h3 className="font-bold text-lg mb-6 flex items-center">
-                            <span className="text-2xl mr-2">🧭</span> 財務儀表板
-                        </h3>
-
-                        <div className="grid grid-cols-2 gap-3 flex-1">
-                            {/* 大模組：可用餘額 */}
-                            <div className="bento-item col-span-2 bg-white border border-[rgba(163,184,153,0.2)] shadow-sm">
-                                <p className="text-sm font-bold text-[var(--text-muted)] mb-1">本月剩餘預算</p>
-                                <h1 className="text-4xl font-black mb-4">${available.toLocaleString()}</h1>
-                                
-                                <div className="h-3 bg-[#E8EBE9] rounded-full overflow-hidden">
-                                    <div 
-                                        className={`h-full rounded-full transition-all duration-1000 ${isTight ? 'bg-[var(--yellow-warm)]' : 'bg-[var(--green-deep)]'}`}
-                                        style={{ width: `${percent}%` }}
-                                    ></div>
-                                </div>
-                                <div className="flex justify-between text-[10px] font-bold mt-2 text-[var(--text-muted)]">
-                                    <span>已花費 ${USER_STATE.spent.toLocaleString()}</span>
-                                    <span>總預算 ${USER_STATE.budget.toLocaleString()}</span>
-                                </div>
+                    <header className="px-5 pt-8 pb-4 flex justify-between items-center relative z-10">
+                        <div className="flex items-center space-x-3">
+                            <div className="w-12 h-12 bg-white rounded-2xl shadow-sm flex items-center justify-center text-2xl border border-[var(--bg-cream)]">
+                                🧑‍🌾
                             </div>
-
-                            {/* 小模組 1：固定支出 */}
-                            <div className="bento-item flex flex-col justify-center">
-                                <span className="text-2xl mb-2">🏛️</span>
-                                <p className="text-[11px] font-bold text-[var(--text-muted)]">固定支出佔比</p>
-                                <p className="text-xl font-black mt-1">{USER_STATE.fixedRatio}%</p>
-                                <p className="text-[10px] text-[var(--text-muted)] mt-1 font-bold">生活基石穩固</p>
-                            </div>
-
-                            {/* 小模組 2：花費之最 */}
-                            <div className="bento-item flex flex-col justify-center">
-                                <span className="text-2xl mb-2">🍽️</span>
-                                <p className="text-[11px] font-bold text-[var(--text-muted)]">本月支出之最</p>
-                                <p className="text-xl font-black mt-1 text-[var(--green-deep)]">{USER_STATE.topCategory}</p>
+                            <div>
+                                <h1 className="text-xl font-black text-[var(--text-dark)] flex items-center">
+                                    Lv.{data.player.level} 園丁
+                                </h1>
+                                <div className="w-24 mt-1">
+                                    <div className="exp-bar shadow-inner">
+                                        <div className="exp-fill" style={{ width: `${percent}%` }}></div>
+                                    </div>
+                                    <p className="text-[9px] font-bold text-[var(--text-muted)] mt-0.5 tracking-wider">
+                                        ☀️ {data.player.exp} / {data.player.maxExp}
+                                    </p>
+                                </div>
                             </div>
                         </div>
+                    </header>
+                );
+            };
 
-                        {/* 互動任務 */}
-                        <div className="mt-6">
-                            <button 
-                                onClick={handleCompleteTask}
-                                disabled={taskCompleted}
-                                className="btn-primary w-full flex items-center justify-center space-x-2"
-                            >
-                                <span>{taskCompleted ? '✅ 檢視完成' : '今日任務：確認財務狀態'}</span>
-                            </button>
+            const renderAssetWater = () => {
+                const waterHeight = Math.min(100, Math.max(30, (data.assets / 100000) * 100)) + '%';
+                return (
+                    <div className="bento-card !pb-8 !pt-6">
+                        <div className="relative z-10">
+                            <p className="text-[var(--text-muted)] text-sm font-bold mb-1">現有總水源 (資產)</p>
+                            <h1 className="text-4xl font-black tracking-tight">${data.assets.toLocaleString()}</h1>
+                        </div>
+                        <div className="water-container" style={{ height: waterHeight }}>
+                            <div className="wave"></div>
+                            <div className="wave"></div>
                         </div>
                     </div>
                 );
             };
 
-            // 🃏 卡片三：防漏網與即將到期 (The Radar Card)
-            const renderRadarCard = () => (
-                <div className="briefing-card glow-warning p-6" style={{ minWidth: '100%' }}>
-                    <div className="mb-6 flex justify-between items-start">
-                        <div>
-                            <h3 className="font-bold text-lg flex items-center">
-                                <span className="text-2xl mr-2">📡</span> 防漏網雷達
-                            </h3>
-                            <p className="text-xs font-bold text-[var(--text-muted)] mt-1">
-                                {bills.length > 0 ? "有幾筆即將到期的款項需要確認" : "本月雷達清空，一切安全！"}
-                            </p>
-                        </div>
-                        <div className="w-10 h-10 bg-[var(--yellow-warm)] rounded-full flex items-center justify-center opacity-40 animate-pulse">
-                            ⚠️
-                        </div>
-                    </div>
+            // 2. 每日任務 (RPG 元素)
+            const renderTasks = () => {
+                const tasksArr = Object.values(data.tasks);
+                const allDone = tasksArr.every(t => t.done);
 
-                    <div className="flex-1 space-y-4 overflow-y-auto pr-2 pb-10">
-                        {bills.length === 0 && (
-                            <div className="h-full flex flex-col items-center justify-center text-[var(--text-muted)] opacity-50">
-                                <span className="text-4xl mb-2">🌿</span>
-                                <p className="font-bold">沒有即將到期的帳單</p>
-                            </div>
-                        )}
-
-                        {bills.map((bill, idx) => (
-                            <div key={bill.id} className="bento-item bg-white border border-[#EED7A1] shadow-sm fade-in-up" style={{ animationDelay: `${idx * 0.1}s` }}>
-                                <div className="flex justify-between items-start mb-3">
-                                    <div>
-                                        <p className="font-bold text-[var(--text-dark)]">{bill.name}</p>
-                                        <p className="text-xs font-bold text-[#D98C8C]">距離扣款還有 {bill.daysLeft} 天</p>
+                return (
+                    <div className="bento-card">
+                        <div className="flex justify-between items-center mb-4">
+                            <h2 className="font-bold text-lg flex items-center">
+                                <span className="text-2xl mr-2">🎯</span> 今日灌溉任務
+                            </h2>
+                            {allDone && <span className="text-xs bg-[var(--green-soft)] text-white px-2 py-1 rounded-lg font-bold">完美達成 ✨</span>}
+                        </div>
+                        <div className="space-y-3">
+                            {tasksArr.map((task, idx) => (
+                                <div key={idx} className={`flex items-center justify-between p-3 rounded-2xl border ${task.done ? 'bg-[#F9FAF8] border-transparent' : 'bg-white border-[#E8EBE9] shadow-sm'}`}>
+                                    <div className="flex items-center space-x-3">
+                                        <div className={`task-checkbox ${task.done ? 'task-done' : ''}`}>
+                                            {task.done && <span className="text-white text-sm">✓</span>}
+                                        </div>
+                                        <span className={`font-bold ${task.done ? 'text-[var(--text-muted)] line-through' : 'text-[var(--text-dark)]'}`}>
+                                            {task.title}
+                                        </span>
                                     </div>
-                                    <span className="font-black text-lg">${bill.amount}</span>
+                                    <div className="flex space-x-1 text-[11px] font-black">
+                                        <span className="bg-[#FFF8E7] text-[#D4A373] px-2 py-1 rounded-md">☀️ {task.rewardExp}</span>
+                                        <span className="bg-[#EAF3FA] text-[#82A8C7] px-2 py-1 rounded-md">💧 {task.rewardMoney}</span>
+                                    </div>
                                 </div>
-                                
-                                <div className="flex space-x-2 mt-4">
-                                    <button 
-                                        onClick={() => handlePayBill(bill)}
-                                        className="flex-1 bg-[#F4F5F3] text-[var(--text-dark)] text-xs font-bold py-2.5 rounded-xl transition-transform active:scale-95"
-                                    >
-                                        已準備好扣款
-                                    </button>
-                                    {bill.type === 'sub' && (
-                                        <button 
-                                            onClick={() => handleCancelSub(bill)}
-                                            className="flex-1 bg-[var(--red-soft)] text-white text-xs font-bold py-2.5 rounded-xl transition-transform active:scale-95 shadow-[0_4px_10px_rgba(217,140,140,0.3)]"
-                                        >
-                                            我想取消訂閱
-                                        </button>
-                                    )}
-                                </div>
-                            </div>
-                        ))}
+                            ))}
+                        </div>
                     </div>
-                    
-                    {/* 結束簡報按鈕 (若在最後一頁才顯示亮色) */}
-                    <button onClick={() => showToast("✨ 晨間簡報完成，開始美好的一天！")} className="btn-primary w-full mt-4 bg-[var(--green-deep)]">
-                        完成簡報，進入首頁
-                    </button>
-                </div>
-            );
+                );
+            };
+
+            // 3. 本月收支統計 (月度報表)
+            const renderMonthlyStats = () => {
+                const { total, stats } = calculateStats();
+
+                return (
+                    <div className="bento-card mb-24">
+                        <div className="flex justify-between items-end mb-5">
+                            <div>
+                                <h2 className="font-bold text-lg flex items-center mb-1">
+                                    <span className="text-2xl mr-2">📊</span> 本月帳本
+                                </h2>
+                                <p className="text-[22px] font-black tracking-tight">${total.toLocaleString()}</p>
+                            </div>
+                            <div className="text-[10px] font-bold text-[var(--text-muted)] bg-[#F4F5F3] px-2 py-1 rounded-lg">
+                                依金額排序
+                            </div>
+                        </div>
+
+                        <div className="space-y-4">
+                            {stats.map((stat, idx) => (
+                                <div key={idx}>
+                                    <div className="flex justify-between text-sm font-bold mb-1.5">
+                                        <span className="text-[var(--text-dark)]">{stat.label}</span>
+                                        <div className="text-right">
+                                            <span className="text-[var(--text-muted)] mr-2">{stat.percent}%</span>
+                                            <span>${stat.amount.toLocaleString()}</span>
+                                        </div>
+                                    </div>
+                                    <div className="stat-bar">
+                                        <div 
+                                            className="stat-fill" 
+                                            style={{ width: `${stat.percent}%`, backgroundColor: stat.color }}
+                                        ></div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                );
+            };
+
+            // --- 底部表單面板 ---
+            const renderActionOverlay = () => {
+                if (!showActionMenu) return null;
+
+                return (
+                    <div className="fixed inset-0 z-50 flex flex-col justify-end bg-black/40 backdrop-blur-sm animate-in fade-in duration-200">
+                        <div className="flex-1" onClick={() => {setShowActionMenu(false); setActiveForm(null);}}></div>
+                        
+                        <div className="bottom-sheet p-6 animate-in slide-in-from-bottom-full duration-300">
+                            <div className="w-12 h-1.5 bg-[#E8EBE9] rounded-full mx-auto mb-6"></div>
+                            
+                            {/* 選單模式 */}
+                            {showActionMenu && !activeForm && (
+                                <div className="grid grid-cols-2 gap-4 mb-4">
+                                    <button onClick={() => setActiveForm('expense')} className="flex flex-col items-center p-5 bg-[#F4F5F3] rounded-3xl active:scale-95 transition-transform">
+                                        <div className="w-14 h-14 bg-white rounded-full flex items-center justify-center text-3xl shadow-sm mb-3">💸</div>
+                                        <span className="text-sm font-bold text-[var(--text-dark)]">記筆開銷</span>
+                                        <span className="text-[10px] font-bold text-[var(--text-muted)] mt-1">解任務拿獎勵</span>
+                                    </button>
+                                    <button onClick={() => setActiveForm('diary')} className="flex flex-col items-center p-5 bg-[#F4F5F3] rounded-3xl active:scale-95 transition-transform">
+                                        <div className="w-14 h-14 bg-white rounded-full flex items-center justify-center text-3xl shadow-sm mb-3">✍️</div>
+                                        <span className="text-sm font-bold text-[var(--text-dark)]">寫篇日記</span>
+                                        <span className="text-[10px] font-bold text-[var(--text-muted)] mt-1">梳理今日心情</span>
+                                    </button>
+                                </div>
+                            )}
+
+                            {/* 記帳表單 */}
+                            {activeForm === 'expense' && (
+                                <div className="space-y-4 mb-4">
+                                    <h3 className="font-bold text-lg flex items-center"><span className="text-2xl mr-2">💸</span>紀錄今日開銷</h3>
+                                    <div className="flex space-x-2">
+                                        <select 
+                                            value={tempCategory} 
+                                            onChange={e=>setTempCategory(e.target.value)}
+                                            className="input-eco w-1/3 bg-white"
+                                        >
+                                            <option value="food">🍔 餐飲</option>
+                                            <option value="shopping">🛍️ 購物</option>
+                                            <option value="transport">🚗 交通</option>
+                                            <option value="life">🏠 生活</option>
+                                        </select>
+                                        <input type="number" value={tempAmount} onChange={e=>setTempAmount(e.target.value)} placeholder="花費金額 ($)" className="input-eco w-2/3 bg-white" autoFocus/>
+                                    </div>
+                                    <button onClick={handleRecordExpense} className="w-full bg-[var(--text-dark)] text-white font-bold py-4 rounded-2xl active:scale-95 transition-transform">
+                                        確認紀錄
+                                    </button>
+                                </div>
+                            )}
+
+                            {/* 日記表單 */}
+                            {activeForm === 'diary' && (
+                                <div className="space-y-4 mb-4">
+                                    <h3 className="font-bold text-lg flex items-center"><span className="text-2xl mr-2">✍️</span>種下今日回憶</h3>
+                                    <textarea value={tempText} onChange={e=>setTempText(e.target.value)} placeholder="今天發生了什麼事呢？" rows="3" className="input-eco bg-white resize-none" autoFocus></textarea>
+                                    <button onClick={handleRecordDiary} className="w-full bg-[var(--text-dark)] text-white font-bold py-4 rounded-2xl active:scale-95 transition-transform">
+                                        封存回憶
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                );
+            };
 
             return (
-                <div className="min-h-screen flex flex-col items-center justify-center py-10 px-4">
-                    {/* Toast 提示元件 */}
+                <div className="min-h-screen relative pb-10">
                     {toastMsg && <div className="toast">{toastMsg}</div>}
 
-                    {/* 頂部導航點 (Carousel Indicators) */}
-                    <div className="flex space-x-2 mb-6">
-                        {[0, 1, 2].map(idx => (
-                            <div 
-                                key={idx} 
-                                className={`h-2 rounded-full transition-all duration-300 ${currentCard === idx ? 'w-8 bg-[var(--text-dark)]' : 'w-2 bg-[var(--text-muted)] opacity-30'}`}
-                            ></div>
-                        ))}
-                    </div>
+                    {renderProfile()}
 
-                    {/* 滑動卡片容器 */}
-                    <div 
-                        className="w-full max-w-md h-[600px] relative overflow-hidden rounded-[32px]"
-                        onTouchStart={onTouchStart}
-                        onTouchMove={onTouchMove}
-                        onTouchEnd={onTouchEnd}
-                    >
-                        {/* 內部軌道 (透過 transform 實現滑動) */}
-                        <div 
-                            className="flex h-full transition-transform duration-500 ease-out"
-                            style={{ transform: `translateX(-${currentCard * 100}%)` }}
+                    <main className="max-w-md mx-auto px-4">
+                        {renderAssetWater()}
+                        {renderTasks()}
+                        {renderMonthlyStats()}
+                    </main>
+
+                    {/* 懸浮動作按鈕 (FAB) */}
+                    <div className="fixed bottom-6 right-6 z-40">
+                        <button 
+                            onClick={() => { setShowActionMenu(true); setActiveForm(null); }}
+                            className="fab-btn w-16 h-16 text-3xl font-light"
                         >
-                            {renderSoulCard()}
-                            {renderCompassCard()}
-                            {renderRadarCard()}
-                        </div>
+                            +
+                        </button>
                     </div>
 
-                    {/* 給桌機版測試用的左右按鈕 (隱藏於手機端，方便在電腦上點擊) */}
-                    <div className="hidden md:flex space-x-4 mt-8">
-                        <button onClick={() => setCurrentCard(p => Math.max(0, p-1))} className="btn-outline px-6 py-2">← 上一張</button>
-                        <button onClick={() => setCurrentCard(p => Math.min(2, p+1))} className="btn-outline px-6 py-2">下一張 →</button>
-                    </div>
+                    {renderActionOverlay()}
                 </div>
             );
         }
@@ -398,4 +484,3 @@
     </script>
 </body>
 </html>
-

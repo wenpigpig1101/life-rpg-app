@@ -20,20 +20,22 @@
 
         body {
             background-color: var(--bg-cream); color: var(--text-dark);
-            font-family: 'Nunito', system-ui, sans-serif; -webkit-tap-highlight-color: transparent; overscroll-behavior-y: none; overflow-x: hidden;
+            font-family: 'Nunito', system-ui, sans-serif; -webkit-tap-highlight-color: transparent; 
         }
         ::-webkit-scrollbar { display: none; }
 
-        .briefing-card {
+        /* 卡片設計 */
+        .bento-card {
             background-color: var(--card-white); border-radius: 32px;
-            box-shadow: 0 12px 32px rgba(44, 62, 53, 0.05), 0 2px 8px rgba(44, 62, 53, 0.02);
-            border: 1px solid rgba(163, 184, 153, 0.15);
-            height: 100%; display: flex; flex-direction: column; position: relative; overflow-y: auto; overflow-x: hidden;
+            box-shadow: 0 8px 24px rgba(74, 124, 89, 0.04), 0 2px 8px rgba(74, 124, 89, 0.02);
+            border: 1px solid rgba(163, 184, 153, 0.15); padding: 24px; position: relative; overflow: hidden;
+            margin-bottom: 16px;
         }
         
         .bento-item { background: #F4F5F3; border-radius: 24px; padding: 16px; }
-        .glow-warning { box-shadow: 0 0 30px rgba(238, 215, 161, 0.3), inset 0 0 20px rgba(238, 215, 161, 0.15); border: 1px solid rgba(238, 215, 161, 0.5); }
+        .glow-warning { box-shadow: 0 0 30px rgba(238, 215, 161, 0.2), inset 0 0 20px rgba(238, 215, 161, 0.1); border: 1px solid rgba(238, 215, 161, 0.4); }
 
+        /* 動畫組件 */
         .water-container { position: absolute; bottom: 0; left: 0; right: 0; height: 120px; z-index: 0; pointer-events: none; border-radius: 32px; overflow: hidden;}
         .wave {
             position: absolute; bottom: -50px; left: -50%; width: 200%; height: 200px;
@@ -42,6 +44,7 @@
         .wave:nth-child(2) { bottom: -60px; left: -40%; background-color: var(--water-deep); animation: drift 9s infinite linear reverse; opacity: 0.4; }
         @keyframes drift { to { transform: rotate(360deg); } }
 
+        /* 任務與進度條 */
         .task-checkbox { width: 24px; height: 24px; border-radius: 8px; border: 2px solid var(--text-muted); display: flex; align-items: center; justify-content: center; transition: all 0.3s; }
         .task-done { background-color: var(--green-deep); border-color: var(--green-deep); animation: popIn 0.4s; }
         @keyframes popIn { 0% { transform: scale(0.8); } 50% { transform: scale(1.2); } 100% { transform: scale(1); } }
@@ -61,9 +64,13 @@
         }
         .tag-pill:active { transform: scale(0.9); background-color: var(--green-soft); color: white; }
 
+        /* UI 元件 */
         .bottom-sheet { background: var(--card-white); border-top-left-radius: 40px; border-top-right-radius: 40px; box-shadow: 0 -10px 40px rgba(0,0,0,0.1); max-height: 85vh; overflow-y: auto; padding-bottom: max(env(safe-area-inset-bottom), 24px); }
         .input-eco { background: #F4F5F3; border: 2px solid transparent; border-radius: 20px; padding: 16px 20px; width: 100%; color: var(--text-dark); font-weight: bold; outline: none; transition: 0.2s; }
         .input-eco:focus { border-color: var(--green-soft); background: #fff; box-shadow: 0 4px 12px rgba(163, 184, 153, 0.15); }
+        
+        /* 底部導覽列 */
+        .bottom-nav { background-color: var(--card-white); border-top-left-radius: 32px; border-top-right-radius: 32px; box-shadow: 0 -4px 24px rgba(44, 62, 53, 0.05); border-top: 1px solid rgba(163, 184, 153, 0.1); }
         
         .toast {
             position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: var(--text-dark); color: white; padding: 12px 24px; border-radius: 999px;
@@ -72,7 +79,7 @@
         }
         @keyframes slideDown { from { top: -50px; opacity: 0; } to { top: 20px; opacity: 1; } }
         @keyframes fadeOut { to { opacity: 0; visibility: hidden; } }
-        .fade-in-up { animation: fadeInUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards; opacity: 0; transform: translateY(20px); }
+        .fade-in-up { animation: fadeInUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards; opacity: 0; transform: translateY(10px); }
         @keyframes fadeInUp { to { opacity: 1; transform: translateY(0); } }
     </style>
 </head>
@@ -100,13 +107,11 @@
                 expense: { title: '記錄一筆開銷', done: false, exp: 20, money: 50 },
                 diary: { title: '寫下今日心情', done: false, exp: 30, money: 100 },
             },
-            // 客製化的常用標籤
             quickTags: [
                 '成成的煙', '豬豬的煙', '成成的咖啡', '早餐', '午餐', '晚餐', '下午茶', '宵夜',
                 '奶粉', 'Bo弟奶粉', '尿布', 'Q尿布', 'Bo弟尿布', '保久乳', '羊奶', '乳酸菌、寶乖亞',
                 '加油', '生活用品', '嬰幼用品', '疫苗接種', '貨車保養', '洗衣機修理費'
             ],
-            // 客製化的防漏網雷達 (照片上的固定支出)
             bills: [
                 { id: 'b1', name: '房租', amount: 15000, daysLeft: 5 },
                 { id: 'b2', name: '婷', amount: 30000, daysLeft: 5 },
@@ -148,7 +153,7 @@
 
         function App() {
             const [data, setData] = useState(INITIAL_STATE);
-            const [currentCard, setCurrentCard] = useState(0);
+            const [activeTab, setActiveTab] = useState('soul'); // soul, compass, radar
             const [actionSheet, setActionSheet] = useState(null);
             const [toastMsg, setToastMsg] = useState(null);
             
@@ -166,20 +171,6 @@
             const [newBillName, setNewBillName] = useState('');
             const [newBillAmount, setNewBillAmount] = useState('');
             const [newBillDays, setNewBillDays] = useState('');
-
-            // 滑動手勢 (Swipe)
-            const [touchStart, setTouchStart] = useState(null);
-            const [touchEnd, setTouchEnd] = useState(null);
-            const minSwipeDistance = 40;
-
-            const onTouchStart = (e) => { setTouchEnd(null); setTouchStart(e.targetTouches[0].clientX); };
-            const onTouchMove = (e) => setTouchEnd(e.targetTouches[0].clientX);
-            const onTouchEnd = () => {
-                if (!touchStart || !touchEnd) return;
-                const distance = touchStart - touchEnd;
-                if (distance > minSwipeDistance && currentCard < 2) setCurrentCard(p => p + 1);
-                if (distance < -minSwipeDistance && currentCard > 0) setCurrentCard(p => p - 1);
-            };
 
             const showToast = (msg) => { setToastMsg(msg); setTimeout(() => setToastMsg(null), 3000); };
 
@@ -272,9 +263,7 @@
                 setData(p => ({ ...p, quickTags: [...p.quickTags, newTag] }));
                 setNewTag(''); showToast('🏷️ 已新增標籤');
             };
-            const handleRemoveTag = (tag) => {
-                setData(p => ({ ...p, quickTags: p.quickTags.filter(t => t !== tag) }));
-            };
+            const handleRemoveTag = (tag) => { setData(p => ({ ...p, quickTags: p.quickTags.filter(t => t !== tag) })); };
 
             const handleAddBill = () => {
                 if(!newBillName) return;
@@ -282,9 +271,7 @@
                 setData(p => ({ ...p, bills: [...p.bills, newBill].sort((a,b)=>a.daysLeft - b.daysLeft) }));
                 setNewBillName(''); setNewBillAmount(''); setNewBillDays(''); showToast('📡 已新增帳單');
             };
-            const handleRemoveBill = (id) => {
-                setData(p => ({ ...p, bills: p.bills.filter(b => b.id !== id) }));
-            };
+            const handleRemoveBill = (id) => { setData(p => ({ ...p, bills: p.bills.filter(b => b.id !== id) })); };
 
             const calculateStats = () => {
                 let total = 0; const summary = { food: 0, shopping: 0, transport: 0, life: 0, baby: 0 };
@@ -300,35 +287,32 @@
             const dateString = `${today.getMonth() + 1}月${today.getDate()}日`;
             const dayString = ['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六'][today.getDay()];
 
-            // 🃏 卡片 1: 心靈與任務
-            const renderSoulCard = () => {
+            // 頁籤 1: 簡報 (心靈與任務)
+            const renderSoulView = () => {
                 const tasksArr = Object.values(data.tasks);
                 return (
-                    <div className="briefing-card p-6" style={{ minWidth: '100%' }}>
-                        <div className="fade-in-up pt-2">
+                    <div className="space-y-4 fade-in-up">
+                        <div className="bento-card bg-white">
                             <div className="flex items-center space-x-2 mb-2 text-[var(--text-muted)] font-bold">
                                 <span className="text-xl">🌤️</span><span>{dateString} · {dayString}</span>
                             </div>
-                            <div className="w-10 h-1 bg-[var(--green-soft)] rounded-full mt-4"></div>
-                        </div>
-
-                        <div className="flex-1 flex flex-col justify-center fade-in-up py-8" style={{ animationDelay: '0.2s' }}>
-                            <h2 className="text-2xl font-black leading-relaxed tracking-wide text-[var(--text-dark)] whitespace-pre-line">
+                            <div className="w-10 h-1 bg-[var(--green-soft)] rounded-full mt-4 mb-6"></div>
+                            <h2 className="text-2xl font-black leading-relaxed tracking-wide text-[var(--text-dark)] whitespace-pre-line py-4">
                                 {getQuote(data.status)}
                             </h2>
                         </div>
 
-                        <div className="fade-in-up mt-auto border-t border-[#E8EBE9] pt-6" style={{ animationDelay: '0.4s' }}>
-                            <h3 className="font-bold text-sm text-[var(--text-muted)] mb-3 flex items-center"><span className="mr-1">🎯</span>今日豬豬任務</h3>
+                        <div className="bento-card">
+                            <h3 className="font-bold text-sm text-[var(--text-muted)] mb-4 flex items-center"><span className="mr-1 text-xl">🎯</span>今日豬豬任務</h3>
                             <div className="space-y-3">
                                 {tasksArr.map((task, idx) => (
-                                    <div key={idx} onClick={() => setActionSheet(idx===0?'addExpense':'addDiary')} className={`flex items-center justify-between p-3 rounded-2xl border cursor-pointer active:scale-95 transition-all ${task.done ? 'bg-[#F9FAF8] border-transparent' : 'bg-white border-[#E8EBE9] shadow-sm'}`}>
+                                    <div key={idx} onClick={() => setActionSheet(idx===0?'addExpense':'addDiary')} className={`flex items-center justify-between p-4 rounded-2xl border cursor-pointer active:scale-[0.98] transition-all ${task.done ? 'bg-[#F9FAF8] border-transparent' : 'bg-white border-[#E8EBE9] shadow-sm'}`}>
                                         <div className="flex items-center space-x-3">
                                             <div className={`task-checkbox ${task.done ? 'task-done' : ''}`}>{task.done && <span className="text-white text-sm">✓</span>}</div>
                                             <span className={`font-bold text-sm ${task.done ? 'text-[var(--text-muted)] line-through' : 'text-[var(--text-dark)]'}`}>{task.title}</span>
                                         </div>
-                                        <div className="flex space-x-1 text-[11px] font-black">
-                                            <span className="bg-[#FFF8E7] text-[#D4A373] px-2 py-1 rounded-md">☀️ {task.exp}</span>
+                                        <div className="flex space-x-1 text-xs font-black">
+                                            <span className="bg-[#FFF8E7] text-[#D4A373] px-2.5 py-1 rounded-md">☀️ {task.exp}</span>
                                         </div>
                                     </div>
                                 ))}
@@ -338,70 +322,69 @@
                 );
             };
 
-            // 🃏 卡片 2: 財務儀表板
-            const renderCompassCard = () => {
+            // 頁籤 2: 帳本 (財務儀表板)
+            const renderCompassView = () => {
                 const available = data.budget - data.spent;
                 const percent = (data.spent / data.budget) * 100;
                 const { total, stats } = calculateStats();
 
                 return (
-                    <div className="briefing-card p-6 pb-10" style={{ minWidth: '100%' }}>
-                        <h3 className="font-bold text-lg mb-4 flex items-center"><span className="text-2xl mr-2">🧭</span> 財務儀表板</h3>
-                        
-                        <div className="bento-item bg-white border border-[#E8EBE9] shadow-sm mb-4 relative overflow-hidden !pb-8 flex-shrink-0">
+                    <div className="space-y-4 fade-in-up">
+                        <div className="bento-card bg-white border border-[#E8EBE9] shadow-sm relative overflow-hidden !pb-8">
                             <div className="relative z-10">
-                                <p className="text-sm font-bold text-[var(--text-muted)] mb-1">本月剩餘預算</p>
-                                <h1 className="text-4xl font-black mb-4">${available.toLocaleString()}</h1>
+                                <p className="text-sm font-bold text-[var(--text-muted)] mb-1 flex items-center"><span className="text-lg mr-1">🧭</span> 本月剩餘預算</p>
+                                <h1 className="text-4xl font-black mb-4 mt-2">${available.toLocaleString()}</h1>
                                 <div className="h-3 bg-[#E8EBE9] rounded-full overflow-hidden relative z-10"><div className={`h-full rounded-full transition-all ${percent > 80 ? 'bg-[var(--yellow-warm)]' : 'bg-[var(--green-deep)]'}`} style={{ width: `${percent}%` }}></div></div>
                                 <div className="flex justify-between text-[10px] font-bold mt-2 text-[var(--text-muted)] relative z-10"><span>已花費 ${data.spent.toLocaleString()}</span><span>總計 ${data.budget.toLocaleString()}</span></div>
                             </div>
                             <div className="water-container opacity-50"><div className="wave"></div><div className="wave"></div></div>
                         </div>
 
-                        <div className="bento-item bg-white border border-[#E8EBE9] shadow-sm flex-1 flex flex-col min-h-0 overflow-y-auto">
-                            <div className="flex justify-between items-end mb-4 flex-shrink-0">
-                                <div><h4 className="font-bold text-sm text-[var(--text-muted)] mb-1">本月支出分佈</h4><p className="text-xl font-black">${total.toLocaleString()}</p></div>
+                        <div className="bento-card bg-white border border-[#E8EBE9] shadow-sm">
+                            <div className="flex justify-between items-end mb-6">
+                                <div><h4 className="font-bold text-sm text-[var(--text-muted)] mb-1">本月支出分佈</h4><p className="text-2xl font-black">${total.toLocaleString()}</p></div>
                             </div>
-                            <div className="space-y-4 flex-1">
+                            <div className="space-y-5">
                                 {stats.filter(s => s.amount > 0).map((stat, idx) => (
                                     <div key={idx}>
-                                        <div className="flex justify-between text-[13px] font-bold mb-1.5"><span className="text-[var(--text-dark)]">{stat.label}</span><div className="text-right"><span className="text-[var(--text-muted)] mr-2">{stat.percent}%</span><span>${stat.amount.toLocaleString()}</span></div></div>
+                                        <div className="flex justify-between text-sm font-bold mb-1.5"><span className="text-[var(--text-dark)]">{stat.label}</span><div className="text-right"><span className="text-[var(--text-muted)] mr-2">{stat.percent}%</span><span>${stat.amount.toLocaleString()}</span></div></div>
                                         <div className="stat-bar"><div className="stat-fill" style={{ width: `${stat.percent}%`, backgroundColor: stat.color }}></div></div>
                                     </div>
                                 ))}
+                                {total === 0 && <p className="text-xs text-center text-[var(--text-muted)] font-bold py-4">目前沒有任何開銷喔！</p>}
                             </div>
                         </div>
                     </div>
                 );
             };
 
-            // 🃏 卡片 3: 雷達與生態園
-            const renderRadarCard = () => (
-                <div className="briefing-card glow-warning p-6 pb-10" style={{ minWidth: '100%' }}>
-                    <div className="mb-6">
+            // 頁籤 3: 雷達 (防漏網與生態園)
+            const renderRadarView = () => (
+                <div className="space-y-4 fade-in-up">
+                    <div className="bento-card glow-warning">
                         <div className="flex justify-between items-center mb-4">
                             <h3 className="font-bold text-lg flex items-center"><span className="text-2xl mr-2">📡</span> 防漏網雷達</h3>
-                            <button onClick={() => setActionSheet('manageBills')} className="text-xs bg-[#F4F5F3] px-3 py-1.5 rounded-xl font-black">⚙️ 編輯</button>
+                            <button onClick={() => setActionSheet('manageBills')} className="text-xs bg-[#F4F5F3] px-3 py-1.5 rounded-xl font-black active:bg-[#e0e3de]">⚙️ 編輯</button>
                         </div>
-                        <div className="space-y-3 max-h-64 overflow-y-auto pr-2 pb-2">
-                            {data.bills.length === 0 && <p className="text-xs text-center text-[var(--text-muted)] font-bold">沒有即將到期的帳單</p>}
+                        <div className="space-y-3">
+                            {data.bills.length === 0 && <p className="text-xs text-center text-[var(--text-muted)] font-bold py-4">沒有即將到期的帳單</p>}
                             {data.bills.map((bill) => (
                                 <div key={bill.id} className="bento-item bg-white shadow-sm border border-[#EED7A1] !p-4 flex flex-col">
-                                    <div className="flex justify-between items-start mb-2"><div><p className="font-bold text-[var(--text-dark)]">{bill.name}</p><p className="text-xs font-bold text-[#D98C8C]">{bill.daysLeft} 天後扣款</p></div><span className="font-black text-lg">${bill.amount}</span></div>
-                                    <button onClick={() => handlePayBill(bill)} className="w-full bg-[#F4F5F3] text-[var(--text-dark)] text-xs font-bold py-2.5 rounded-xl mt-2 active:scale-95 transition-transform">✅ 已準備扣款 (點擊扣除)</button>
+                                    <div className="flex justify-between items-start mb-2"><div><p className="font-bold text-[var(--text-dark)]">{bill.name}</p><p className="text-xs font-bold text-[#D98C8C] mt-0.5">{bill.daysLeft} 天後扣款</p></div><span className="font-black text-lg">${bill.amount}</span></div>
+                                    <button onClick={() => handlePayBill(bill)} className="w-full bg-[#F4F5F3] text-[var(--text-dark)] text-xs font-bold py-3 rounded-xl mt-2 active:scale-[0.98] transition-transform">✅ 已準備扣款 (點擊扣除)</button>
                                 </div>
                             ))}
                         </div>
                     </div>
 
-                    <div className="mb-6">
-                        <div className="flex justify-between items-center mb-4"><h3 className="font-bold text-lg flex items-center"><span className="text-2xl mr-2">🌿</span> 目標溫室</h3><button onClick={() => setActionSheet('manageGoals')} className="text-xs bg-[#F4F5F3] px-3 py-1.5 rounded-xl font-black">⚙️ 管理</button></div>
+                    <div className="bento-card">
+                        <div className="flex justify-between items-center mb-4"><h3 className="font-bold text-lg flex items-center"><span className="text-2xl mr-2">🌿</span> 目標溫室</h3><button onClick={() => setActionSheet('manageGoals')} className="text-xs bg-[#F4F5F3] px-3 py-1.5 rounded-xl font-black active:bg-[#e0e3de]">⚙️ 管理</button></div>
                         <div className="space-y-4">
                             {data.goals.map(goal => {
                                 const percent = Math.min(100, (goal.current / goal.target) * 100);
                                 return (
-                                    <div key={goal.id} onClick={() => !goal.isBlooming && (setWateringGoal(goal), setActionSheet('waterGoal'))} className="bg-white p-4 rounded-2xl border border-[#E8EBE9] shadow-sm cursor-pointer active:scale-95 transition-transform">
-                                        <div className="flex justify-between text-sm font-bold mb-2"><span>{goal.isBlooming ? '🌸' : '🌱'} {goal.title}</span><span className="text-[var(--text-muted)]">${goal.current.toLocaleString()} / ${goal.target.toLocaleString()}</span></div>
+                                    <div key={goal.id} onClick={() => !goal.isBlooming && (setWateringGoal(goal), setActionSheet('waterGoal'))} className="bg-white p-4 rounded-2xl border border-[#E8EBE9] shadow-sm cursor-pointer active:scale-[0.98] transition-transform">
+                                        <div className="flex justify-between text-sm font-bold mb-3"><span>{goal.isBlooming ? '🌸' : '🌱'} {goal.title}</span><span className="text-[var(--text-muted)]">${goal.current.toLocaleString()} / ${goal.target.toLocaleString()}</span></div>
                                         <div className="vine-track"><div className="vine-fill" style={{ width: `${percent}%` }}>{goal.isBlooming ? <span className="vine-leaf transform scale-125">🌸</span> : <span className="vine-leaf">🍃</span>}</div></div>
                                     </div>
                                 );
@@ -422,9 +405,9 @@
 
                             {/* 選單 */}
                             {actionSheet === 'menu' && (
-                                <div className="grid grid-cols-2 gap-3 mb-4">
-                                    <button onClick={() => setActionSheet('addExpense')} className="flex flex-col items-center p-5 bg-[#F4F5F3] rounded-3xl active:scale-95"><span className="text-3xl bg-white p-4 rounded-full mb-3 shadow-sm">💸</span><span className="text-sm font-bold">記筆開銷</span></button>
-                                    <button onClick={() => setActionSheet('addDiary')} className="flex flex-col items-center p-5 bg-[#F4F5F3] rounded-3xl active:scale-95"><span className="text-3xl bg-white p-4 rounded-full mb-3 shadow-sm">✍️</span><span className="text-sm font-bold">寫篇日記</span></button>
+                                <div className="grid grid-cols-2 gap-4 mb-4">
+                                    <button onClick={() => setActionSheet('addExpense')} className="flex flex-col items-center p-6 bg-[#F4F5F3] rounded-3xl active:scale-95"><span className="text-4xl bg-white p-4 rounded-full mb-3 shadow-sm">💸</span><span className="text-sm font-bold text-[var(--text-dark)]">記筆開銷</span></button>
+                                    <button onClick={() => setActionSheet('addDiary')} className="flex flex-col items-center p-6 bg-[#F4F5F3] rounded-3xl active:scale-95"><span className="text-4xl bg-white p-4 rounded-full mb-3 shadow-sm">✍️</span><span className="text-sm font-bold text-[var(--text-dark)]">寫篇日記</span></button>
                                 </div>
                             )}
 
@@ -436,9 +419,9 @@
                                         <button onClick={() => setActionSheet('manageTags')} className="text-xs bg-[#F4F5F3] px-3 py-1.5 rounded-xl font-black">⚙️ 編輯標籤</button>
                                     </div>
                                     
-                                    <div className="bg-[#F9FAF8] p-3 rounded-2xl border border-[#E8EBE9]">
-                                        <p className="text-xs font-bold text-[var(--text-muted)] mb-2">常用標籤 (點擊帶入)</p>
-                                        <div className="flex flex-wrap gap-2 max-h-32 overflow-y-auto">
+                                    <div className="bg-[#F9FAF8] p-4 rounded-2xl border border-[#E8EBE9]">
+                                        <p className="text-xs font-bold text-[var(--text-muted)] mb-3">常用標籤 (點擊帶入)</p>
+                                        <div className="flex flex-wrap gap-2 max-h-40 overflow-y-auto">
                                             {data.quickTags.map((tag, i) => (
                                                 <button key={i} onClick={() => setTempTitle(tag)} className="tag-pill bg-white border border-[#E8EBE9] shadow-sm">{tag}</button>
                                             ))}
@@ -461,10 +444,10 @@
                             {actionSheet === 'manageTags' && (
                                 <div>
                                     <div className="flex justify-between items-center mb-4"><h3 className="font-black text-lg">⚙️ 編輯快捷標籤</h3><button onClick={() => setActionSheet('addExpense')} className="text-sm font-bold text-[var(--text-muted)]">返回</button></div>
-                                    <div className="flex space-x-2 mb-4"><input type="text" value={newTag} onChange={e=>setNewTag(e.target.value)} placeholder="新標籤 (例如: 買菜)" className="input-eco py-3" /><button onClick={handleAddTag} className="bg-[var(--text-dark)] text-white font-bold px-6 rounded-2xl">新增</button></div>
-                                    <div className="space-y-2 max-h-60 overflow-y-auto">
+                                    <div className="flex space-x-2 mb-6"><input type="text" value={newTag} onChange={e=>setNewTag(e.target.value)} placeholder="新標籤 (例如: 買菜)" className="input-eco py-3" /><button onClick={handleAddTag} className="bg-[var(--text-dark)] text-white font-bold px-6 rounded-2xl">新增</button></div>
+                                    <div className="space-y-2 max-h-64 overflow-y-auto pb-4">
                                         {data.quickTags.map((tag, i) => (
-                                            <div key={i} className="flex justify-between items-center bg-[#F4F5F3] p-3 rounded-xl"><span className="font-bold text-sm">{tag}</span><button onClick={() => handleRemoveTag(tag)} className="text-xs text-[var(--red-soft)] font-bold">移除</button></div>
+                                            <div key={i} className="flex justify-between items-center bg-[#F4F5F3] p-3 rounded-xl"><span className="font-bold text-sm">{tag}</span><button onClick={() => handleRemoveTag(tag)} className="text-xs text-[var(--red-soft)] font-bold bg-[#FFE8E8] px-3 py-1.5 rounded-lg">移除</button></div>
                                         ))}
                                     </div>
                                 </div>
@@ -474,7 +457,7 @@
                             {actionSheet === 'manageBills' && (
                                 <div>
                                     <div className="flex justify-between items-center mb-4"><h3 className="font-black text-lg">⚙️ 編輯防漏網雷達</h3><button onClick={() => setActionSheet(null)} className="text-sm font-bold text-[var(--text-muted)]">完成</button></div>
-                                    <div className="bg-[#F4F5F3] p-4 rounded-2xl mb-4 space-y-3">
+                                    <div className="bg-[#F4F5F3] p-4 rounded-2xl mb-6 space-y-3">
                                         <p className="text-xs font-bold text-[var(--text-muted)]">新增固定帳單</p>
                                         <input type="text" value={newBillName} onChange={e=>setNewBillName(e.target.value)} placeholder="帳單名稱 (例如: 托嬰費)" className="input-eco py-3 bg-white" />
                                         <div className="flex space-x-2">
@@ -483,9 +466,9 @@
                                         </div>
                                         <button onClick={handleAddBill} className="w-full bg-[var(--text-dark)] text-white font-bold py-3 rounded-xl">新增帳單</button>
                                     </div>
-                                    <div className="space-y-2 max-h-48 overflow-y-auto pb-4">
+                                    <div className="space-y-2 max-h-60 overflow-y-auto pb-4">
                                         {data.bills.map((b) => (
-                                            <div key={b.id} className="flex justify-between items-center bg-white border border-[#E8EBE9] p-3 rounded-xl"><div className="flex flex-col"><span className="font-bold text-sm">{b.name} <span className="text-[var(--text-muted)] text-xs ml-1">${b.amount}</span></span></div><button onClick={() => handleRemoveBill(b.id)} className="text-xs text-[var(--red-soft)] font-bold">移除</button></div>
+                                            <div key={b.id} className="flex justify-between items-center bg-white border border-[#E8EBE9] p-3 rounded-xl"><div className="flex flex-col"><span className="font-bold text-sm">{b.name} <span className="text-[var(--text-muted)] text-xs ml-1">${b.amount}</span></span></div><button onClick={() => handleRemoveBill(b.id)} className="text-xs text-[var(--red-soft)] font-bold bg-[#FFE8E8] px-3 py-1.5 rounded-lg">移除</button></div>
                                         ))}
                                     </div>
                                 </div>
@@ -495,8 +478,8 @@
                             {actionSheet === 'addDiary' && (
                                 <div className="space-y-4 mb-4">
                                     <h3 className="font-bold text-lg">✍️ 寫下日記</h3>
-                                    <textarea value={tempText} onChange={e=>setTempText(e.target.value)} className="input-eco resize-none bg-white" rows="3" placeholder="今天心情好嗎？"></textarea>
-                                    <button onClick={handleRecordDiary} className="w-full bg-[var(--text-dark)] text-white font-bold py-4 rounded-2xl">儲存並解任務</button>
+                                    <textarea value={tempText} onChange={e=>setTempText(e.target.value)} className="input-eco resize-none bg-white" rows="4" placeholder="今天發生了什麼事呢？"></textarea>
+                                    <button onClick={handleRecordDiary} className="w-full bg-[var(--text-dark)] text-white font-bold py-4 rounded-2xl mt-2">儲存並解任務</button>
                                 </div>
                             )}
 
@@ -504,14 +487,14 @@
                             {actionSheet === 'manageGoals' && (
                                 <div>
                                     <h3 className="font-black text-lg mb-4">⚙️ 栽種新目標</h3>
-                                    <div className="space-y-3 mb-6">
-                                        <input type="text" value={newGoalTitle} onChange={e=>setNewGoalTitle(e.target.value)} placeholder="目標名稱" className="input-eco" />
-                                        <div className="flex space-x-2"><input type="number" value={newGoalTarget} onChange={e=>setNewGoalTarget(e.target.value)} placeholder="金額" className="input-eco flex-1" /><button onClick={handleAddGoal} className="bg-[var(--text-dark)] text-white font-bold px-6 rounded-2xl">栽種</button></div>
+                                    <div className="space-y-3 mb-6 bg-[#F4F5F3] p-4 rounded-2xl">
+                                        <input type="text" value={newGoalTitle} onChange={e=>setNewGoalTitle(e.target.value)} placeholder="目標名稱" className="input-eco bg-white" />
+                                        <div className="flex space-x-2"><input type="number" value={newGoalTarget} onChange={e=>setNewGoalTarget(e.target.value)} placeholder="金額" className="input-eco bg-white flex-1" /><button onClick={handleAddGoal} className="bg-[var(--text-dark)] text-white font-bold px-6 rounded-2xl">栽種</button></div>
                                     </div>
                                     <h3 className="font-black text-sm text-[var(--text-muted)] mb-3">🪴 移除現有目標</h3>
-                                    <div className="space-y-2 max-h-40 overflow-y-auto">
+                                    <div className="space-y-2 max-h-48 overflow-y-auto pb-4">
                                         {data.goals.map(g => (
-                                            <div key={g.id} className="flex justify-between items-center bg-[#F4F5F3] p-3 rounded-xl"><span className="font-bold text-sm">{g.title}</span><button onClick={() => setData(p => ({...p, goals: p.goals.filter(x => x.id !== g.id)}))} className="text-xs text-[var(--red-soft)] font-bold">移除</button></div>
+                                            <div key={g.id} className="flex justify-between items-center bg-white border border-[#E8EBE9] p-3 rounded-xl"><span className="font-bold text-sm">{g.title}</span><button onClick={() => setData(p => ({...p, goals: p.goals.filter(x => x.id !== g.id)}))} className="text-xs text-[var(--red-soft)] font-bold bg-[#FFE8E8] px-3 py-1.5 rounded-lg">移除</button></div>
                                         ))}
                                     </div>
                                 </div>
@@ -521,8 +504,8 @@
                             {actionSheet === 'waterGoal' && wateringGoal && (
                                 <div className="space-y-4 mb-4">
                                     <div className="text-center"><span className="text-4xl block mb-2">💧</span><h3 className="font-black text-lg">澆灌【{wateringGoal.title}】</h3><p className="text-xs font-bold text-[var(--text-muted)]">進度: ${wateringGoal.current} / ${wateringGoal.target}</p></div>
-                                    <input type="number" value={tempAmount} onChange={e=>setTempAmount(e.target.value)} placeholder="存入金額..." className="input-eco text-center text-lg" autoFocus/>
-                                    <button onClick={() => pourBonusToGoal(wateringGoal.id)} className="w-full bg-[var(--green-deep)] text-white font-bold py-4 rounded-2xl">滴入水滴</button>
+                                    <input type="number" value={tempAmount} onChange={e=>setTempAmount(e.target.value)} placeholder="存入金額..." className="input-eco text-center text-lg mt-4" autoFocus/>
+                                    <button onClick={() => pourBonusToGoal(wateringGoal.id)} className="w-full bg-[var(--green-deep)] text-white font-bold py-4 rounded-2xl mt-4">滴入水滴</button>
                                 </div>
                             )}
                         </div>
@@ -531,11 +514,11 @@
             };
 
             return (
-                <div className="min-h-screen relative bg-[var(--bg-cream)]">
+                <div className="min-h-screen relative pb-28">
                     {toastMsg && <div className="toast">{toastMsg}</div>}
                     
-                    {/* 頂部固定 Header: 豬豬與經驗 */}
-                    <header className="px-5 pt-8 pb-4 flex justify-between items-center">
+                    {/* 頂部 Header */}
+                    <header className="px-5 pt-8 pb-4 flex justify-between items-center sticky top-0 bg-[var(--bg-cream)] z-30">
                         <div className="flex items-center space-x-3">
                             <div className="w-12 h-12 bg-white rounded-2xl shadow-sm flex items-center justify-center text-2xl border border-[#E8EBE9]">🐷</div>
                             <div>
@@ -543,27 +526,38 @@
                                 <div className="w-24 mt-1"><div className="exp-bar"><div className="exp-fill" style={{ width: `${(data.player.exp/data.player.maxExp)*100}%` }}></div></div></div>
                             </div>
                         </div>
-                        <button onClick={() => setActionSheet('menu')} className="w-12 h-12 bg-[var(--text-dark)] text-white rounded-full shadow-lg flex items-center justify-center text-2xl font-light active:scale-90 transition-transform">+</button>
                     </header>
 
-                    {/* 滑動導航圓點 */}
-                    <div className="flex justify-center space-x-2 mb-2">
-                        {[0, 1, 2].map(idx => (<div key={idx} className={`h-1.5 rounded-full transition-all duration-300 ${currentCard === idx ? 'w-6 bg-[var(--text-dark)]' : 'w-1.5 bg-[var(--text-muted)] opacity-30'}`}></div>))}
-                    </div>
+                    {/* 內容區 (上下滑動) */}
+                    <main className="max-w-md mx-auto px-4 mt-2">
+                        {activeTab === 'soul' && renderSoulView()}
+                        {activeTab === 'compass' && renderCompassView()}
+                        {activeTab === 'radar' && renderRadarView()}
+                    </main>
 
-                    {/* 滑動卡片容器區 */}
-                    <div 
-                        className="w-full max-w-md mx-auto px-4 relative overflow-hidden" style={{ height: 'calc(100vh - 160px)' }}
-                        onTouchStart={onTouchStart} onTouchMove={onTouchMove} onTouchEnd={onTouchEnd}
-                    >
-                        <div className="flex h-full transition-transform duration-500 ease-out" style={{ transform: `translateX(calc(-${currentCard * 100}% - ${currentCard * 16}px))` }}>
-                            {/* Card 1 */}
-                            <div className="w-full h-full flex-shrink-0 mr-4 pb-4">{renderSoulCard()}</div>
-                            {/* Card 2 */}
-                            <div className="w-full h-full flex-shrink-0 mr-4 pb-4">{renderCompassCard()}</div>
-                            {/* Card 3 */}
-                            <div className="w-full h-full flex-shrink-0 pb-4">{renderRadarCard()}</div>
+                    {/* 底部導覽列 & 浮動按鈕 */}
+                    <div className="fixed bottom-0 w-full z-40">
+                        {/* 懸浮動作按鈕 (FAB) - 放在導覽列上方 */}
+                        <div className="max-w-md mx-auto relative">
+                            <button onClick={() => setActionSheet('menu')} className="absolute right-6 -top-16 w-14 h-14 bg-[var(--text-dark)] text-white rounded-full shadow-lg flex items-center justify-center text-3xl font-light active:scale-90 transition-transform">
+                                +
+                            </button>
                         </div>
+                        
+                        {/* 底部 Tabs */}
+                        <nav className="bottom-nav pb-safe">
+                            <div className="max-w-md mx-auto flex justify-start items-center px-4 py-3 space-x-6 pr-24">
+                                <button onClick={() => setActiveTab('soul')} className={`flex flex-col items-center w-16 transition-transform ${activeTab==='soul'?'scale-110 text-[var(--text-dark)]':'text-[var(--text-muted)] opacity-60'}`}>
+                                    <span className="text-2xl mb-1">🌤️</span><span className="text-[10px] font-black">簡報</span>
+                                </button>
+                                <button onClick={() => setActiveTab('compass')} className={`flex flex-col items-center w-16 transition-transform ${activeTab==='compass'?'scale-110 text-[var(--text-dark)]':'text-[var(--text-muted)] opacity-60'}`}>
+                                    <span className="text-2xl mb-1">📊</span><span className="text-[10px] font-black">帳本</span>
+                                </button>
+                                <button onClick={() => setActiveTab('radar')} className={`flex flex-col items-center w-16 transition-transform ${activeTab==='radar'?'scale-110 text-[var(--text-dark)]':'text-[var(--text-muted)] opacity-60'}`}>
+                                    <span className="text-2xl mb-1">📡</span><span className="text-[10px] font-black">雷達</span>
+                                </button>
+                            </div>
+                        </nav>
                     </div>
 
                     {renderActionOverlay()}

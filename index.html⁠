@@ -1,0 +1,590 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>生活冒險家 - 記帳日記RPG</title>
+    
+    <!-- 引入 Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- 引入 React 與 ReactDOM -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    
+    <!-- 引入 Babel 以解析 JSX -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    
+    <!-- 引入 Phosphor Icons (圖示庫) -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+
+    <style>
+        body {
+            -webkit-tap-highlight-color: transparent;
+            overscroll-behavior-y: none;
+        }
+        /* 隱藏滾動條但保留滾動功能 */
+        ::-webkit-scrollbar {
+            width: 0px;
+            background: transparent;
+        }
+        .animate-bounce-slow {
+            animation: bounce 3s infinite;
+        }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-200 font-sans selection:bg-amber-500/30">
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        // --- 預設資料與設定 ---
+        const INITIAL_PLAYER = {
+            level: 1,
+            exp: 0,
+            maxExp: 100,
+            gold: 0,
+            className: '初心者',
+            classStats: { food: 0, shopping: 0, diary: 0, saving: 0 },
+            housingItems: []
+        };
+
+        const INITIAL_QUESTS = [
+            { id: 1, title: '日常任務：紀錄一筆開銷', type: 'expense', target: 1, progress: 0, expReward: 20, goldReward: 10, claimed: false },
+            { id: 2, title: '日常任務：寫下今日日記', type: 'diary', target: 1, progress: 0, expReward: 30, goldReward: 15, claimed: false },
+            { id: 3, title: '挑戰任務：對 Boss 造成傷害', type: 'boss_damage', target: 1, progress: 0, expReward: 50, goldReward: 50, claimed: false },
+        ];
+
+        const INITIAL_BOSSES = [
+            { id: 1, name: '誘惑的巨獸・PS5', maxHp: 20000, currentHp: 20000, rewardExp: 500, rewardGold: 1000, isDefeated: false }
+        ];
+
+        const SHOP_ITEMS = [
+            { id: 'cat', name: '守護神・橘貓', cost: 100, icon: '🐈' },
+            { id: 'plant', name: '生命之樹盆栽', cost: 50, icon: '🪴' },
+            { id: 'rug', name: '皇家豪華地毯', cost: 200, icon: '🟪' },
+        ];
+
+        // --- 共用組件 ---
+        const ProgressBar = ({ current, max, colorClass, label }) => {
+            const percentage = Math.min(100, Math.max(0, (current / max) * 100));
+            return (
+                <div className="w-full">
+                    <div className="flex justify-between text-xs mb-1 font-mono">
+                        <span>{label}</span>
+                        <span>{current} / {max}</span>
+                    </div>
+                    <div className="w-full bg-slate-800 rounded-full h-3 border border-slate-600 overflow-hidden">
+                        <div className={`h-full ${colorClass} transition-all duration-500`} style={{ width: `${percentage}%` }}></div>
+                    </div>
+                </div>
+            );
+        };
+
+        const Card = ({ children, className = '' }) => (
+            <div className={`bg-slate-800 border-2 border-slate-600 rounded-lg p-4 shadow-[4px_4px_0px_rgba(0,0,0,0.5)] mb-4 ${className}`}>
+                {children}
+            </div>
+        );
+
+        // --- 主應用程式 ---
+        function App() {
+            const [activeTab, setActiveTab] = useState('home');
+            const [player, setPlayer] = useState(INITIAL_PLAYER);
+            const [quests, setQuests] = useState(INITIAL_QUESTS);
+            const [bosses, setBosses] = useState(INITIAL_BOSSES);
+            
+            // 表單狀態
+            const [expenseAmount, setExpenseAmount] = useState('');
+            const [expenseCategory, setExpenseCategory] = useState('food');
+            const [diaryContent, setDiaryContent] = useState('');
+            const [bossDamage, setBossDamage] = useState('');
+            const [logs, setLogs] = useState([]);
+
+            // --- 核心邏輯 ---
+            const addLog = (msg) => {
+                setLogs(prev => [{ time: new Date().toLocaleTimeString('zh-TW', {hour: '2-digit', minute:'2-digit', second:'2-digit'}), msg }, ...prev].slice(0, 5));
+            };
+
+            const gainRewards = (exp, gold) => {
+                setPlayer(prev => {
+                    let newExp = prev.exp + exp;
+                    let newLevel = prev.level;
+                    let newMaxExp = prev.maxExp;
+                    
+                    while (newExp >= newMaxExp) {
+                        newExp -= newMaxExp;
+                        newLevel += 1;
+                        newMaxExp = Math.floor(newMaxExp * 1.5);
+                        addLog(`🎉 升級了！達到 Lv.${newLevel}`);
+                    }
+
+                    return {
+                        ...prev,
+                        level: newLevel,
+                        exp: newExp,
+                        maxExp: newMaxExp,
+                        gold: prev.gold + gold
+                    };
+                });
+            };
+
+            const updateQuestProgress = (type) => {
+                setQuests(prev => prev.map(q => {
+                    if (q.type === type && !q.claimed && q.progress < q.target) {
+                        return { ...q, progress: q.progress + 1 };
+                    }
+                    return q;
+                }));
+            };
+
+            const updateClass = (type, amount = 1) => {
+                setPlayer(prev => {
+                    const newStats = { ...prev.classStats };
+                    if (type === 'food') newStats.food += amount;
+                    if (type === 'shopping') newStats.shopping += amount;
+                    if (type === 'diary') newStats.diary += amount;
+                    if (type === 'saving') newStats.saving += amount;
+
+                    let newClass = '初心者';
+                    const maxStat = Math.max(...Object.values(newStats));
+                    
+                    if (maxStat >= 3) {
+                        if (newStats.food === maxStat) newClass = '美食狂戰士 🍖';
+                        else if (newStats.shopping === maxStat) newClass = '幻象魔法師 ✨';
+                        else if (newStats.diary === maxStat) newClass = '傳奇吟遊詩人 📜';
+                        else if (newStats.saving === maxStat) newClass = '極簡苦行僧 🧘';
+                    }
+
+                    if (prev.className !== newClass && newClass !== '初心者') {
+                        addLog(`轉職成功！你成為了【${newClass}】`);
+                    }
+
+                    return { ...prev, classStats: newStats, className: newClass };
+                });
+            };
+
+            // --- 互動行為 ---
+            const handleRecordExpense = (e) => {
+                e.preventDefault();
+                if (!expenseAmount) return;
+                
+                gainRewards(10, 5);
+                updateQuestProgress('expense');
+                updateClass(expenseCategory === 'food' ? 'food' : 'shopping', 1);
+                addLog(`💸 施放金錢術：花費了 $${expenseAmount}`);
+                
+                setExpenseAmount('');
+            };
+
+            const handleWriteDiary = (e) => {
+                e.preventDefault();
+                if (!diaryContent) return;
+                
+                gainRewards(20, 10);
+                updateQuestProgress('diary');
+                updateClass('diary', 1);
+                addLog(`📝 紀錄傳奇篇章：撰寫了日記`);
+                
+                setDiaryContent('');
+            };
+
+            const handleAttackBoss = (bossId) => {
+                const damage = parseInt(bossDamage);
+                if (!damage || isNaN(damage) || damage <= 0) return;
+
+                setBosses(prev => prev.map(boss => {
+                    if (boss.id === bossId && !boss.isDefeated) {
+                        const newHp = Math.max(0, boss.currentHp - damage);
+                        const isDefeated = newHp === 0;
+                        
+                        addLog(`⚔️ 對【${boss.name}】造成了 ${damage} 點真實傷害！`);
+                        updateQuestProgress('boss_damage');
+                        updateClass('saving', 1);
+
+                        if (isDefeated) {
+                            gainRewards(boss.rewardExp, boss.rewardGold);
+                            addLog(`🏆 討伐成功！擊敗了【${boss.name}】！獲得鉅額獎勵！`);
+                        } else {
+                            gainRewards(Math.floor(damage / 10), 0);
+                        }
+
+                        return { ...boss, currentHp: newHp, isDefeated };
+                    }
+                    return boss;
+                }));
+                setBossDamage('');
+            };
+
+            const handleClaimQuest = (questId) => {
+                setQuests(prev => prev.map(q => {
+                    if (q.id === questId && q.progress >= q.target && !q.claimed) {
+                        gainRewards(q.expReward, q.goldReward);
+                        addLog(`✅ 完成任務【${q.title}】`);
+                        return { ...q, claimed: true };
+                    }
+                    return q;
+                }));
+            };
+
+            const handleBuyItem = (item) => {
+                if (player.gold >= item.cost && !player.housingItems.includes(item.id)) {
+                    setPlayer(prev => ({
+                        ...prev,
+                        gold: prev.gold - item.cost,
+                        housingItems: [...prev.housingItems, item.id]
+                    }));
+                    addLog(`🏠 購買了【${item.name}】佈置小屋！`);
+                } else if (player.housingItems.includes(item.id)) {
+                    addLog(`⚠️ 已經擁有【${item.name}】了！`);
+                } else {
+                    addLog(`❌ 金幣不足，無法購買【${item.name}】！`);
+                }
+            };
+
+            // --- 畫面渲染函數 ---
+            const renderHome = () => (
+                <div className="space-y-4 pb-24">
+                    <Card className="bg-gradient-to-b from-slate-800 to-slate-900 border-amber-500/50">
+                        <div className="flex items-center justify-between mb-4">
+                            <div className="flex items-center space-x-3">
+                                <div className="w-16 h-16 bg-slate-700 rounded-lg border-2 border-slate-500 flex items-center justify-center text-3xl">
+                                    🦸
+                                </div>
+                                <div>
+                                    <h2 className="font-bold text-lg text-amber-400">{player.className}</h2>
+                                    <p className="text-sm text-slate-400">冒險家稱號</p>
+                                </div>
+                            </div>
+                            <div className="text-right">
+                                <div className="text-xl font-bold flex items-center justify-end text-yellow-400">
+                                    <i className="ph-fill ph-coin w-5 h-5 mr-1"></i> {player.gold}
+                                </div>
+                                <div className="text-sm text-slate-400 mt-1">累積財富</div>
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-4 gap-2 text-center text-xs text-slate-300 font-mono mt-4 pt-4 border-t border-slate-700">
+                            <div>
+                                <div className="text-red-400 text-lg mb-1">🍖</div>
+                                <div>食慾 {player.classStats.food}</div>
+                            </div>
+                            <div>
+                                <div className="text-purple-400 text-lg mb-1">✨</div>
+                                <div>物慾 {player.classStats.shopping}</div>
+                            </div>
+                            <div>
+                                <div className="text-blue-400 text-lg mb-1">📜</div>
+                                <div>智慧 {player.classStats.diary}</div>
+                            </div>
+                            <div>
+                                <div className="text-green-400 text-lg mb-1">🧘</div>
+                                <div>克制 {player.classStats.saving}</div>
+                            </div>
+                        </div>
+                    </Card>
+
+                    <Card>
+                        <h3 className="font-bold mb-3 flex items-center text-emerald-400">
+                            <i className="ph-fill ph-tent w-5 h-5 mr-2"></i> 個人小屋
+                        </h3>
+                        <div className="bg-slate-900 h-32 rounded border border-slate-700 relative overflow-hidden flex items-end justify-center p-2">
+                            <div className="absolute inset-0 opacity-20 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-emerald-900 via-slate-900 to-slate-900"></div>
+                            <div className="flex space-x-4 z-10 text-4xl items-end relative w-full justify-center">
+                                <div className="animate-bounce-slow relative z-20">🦸</div>
+                                {player.housingItems.includes('cat') && <div className="relative z-20">🐈</div>}
+                                {player.housingItems.includes('plant') && <div className="relative z-20">🪴</div>}
+                                {player.housingItems.includes('rug') && <div className="absolute bottom-0 w-48 h-6 bg-purple-900/60 rounded-[100%] blur-[2px] z-10"></div>}
+                            </div>
+                        </div>
+                        
+                        <div className="mt-4">
+                            <h4 className="text-xs font-bold text-slate-400 mb-2">家具商店</h4>
+                            <div className="grid grid-cols-3 gap-2">
+                                {SHOP_ITEMS.map(item => (
+                                    <button 
+                                        key={item.id}
+                                        onClick={() => handleBuyItem(item)}
+                                        className={`p-2 rounded border flex flex-col items-center justify-center text-xs transition-colors ${
+                                            player.housingItems.includes(item.id) 
+                                                ? 'bg-slate-800 border-slate-600 opacity-50 cursor-not-allowed'
+                                                : 'bg-slate-700 border-slate-500 hover:bg-slate-600 active:bg-slate-800'
+                                        }`}
+                                    >
+                                        <span className="text-2xl mb-1">{item.icon}</span>
+                                        <span className="truncate w-full text-center">{item.name}</span>
+                                        <span className="text-yellow-400 flex items-center mt-1">
+                                            <i className="ph-fill ph-coin w-3 h-3 mr-1"></i>{item.cost}
+                                        </span>
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                    </Card>
+
+                    <Card>
+                        <h3 className="font-bold mb-2 flex items-center text-blue-400">
+                            <i className="ph-fill ph-book-open text-xl mr-2"></i> 冒險日誌
+                        </h3>
+                        <div className="space-y-2 font-mono text-sm">
+                            {logs.length === 0 ? (
+                                <div className="text-slate-500 text-center py-4">尚無冒險紀錄...</div>
+                            ) : (
+                                logs.map((log, i) => (
+                                    <div key={i} className="flex space-x-2">
+                                        <span className="text-slate-500 shrink-0">[{log.time}]</span>
+                                        <span className="text-slate-300">{log.msg}</span>
+                                    </div>
+                                ))
+                            )}
+                        </div>
+                    </Card>
+                </div>
+            );
+
+            const renderAdd = () => (
+                <div className="space-y-4 pb-24">
+                    <Card>
+                        <h3 className="font-bold mb-4 flex items-center text-red-400">
+                            <i className="ph-fill ph-fire text-xl mr-2"></i> 紀錄開銷 (消耗資源)
+                        </h3>
+                        <form onSubmit={handleRecordExpense} className="space-y-3">
+                            <div>
+                                <label className="text-xs text-slate-400 mb-1 block">開銷類型</label>
+                                <select 
+                                    value={expenseCategory} 
+                                    onChange={(e) => setExpenseCategory(e.target.value)}
+                                    className="w-full bg-slate-900 border border-slate-600 rounded p-2 text-slate-200 outline-none focus:border-amber-500"
+                                >
+                                    <option value="food">🍖 餐飲美食</option>
+                                    <option value="shopping">✨ 購物治裝</option>
+                                    <option value="transport">🚗 交通通訊</option>
+                                    <option value="other">📦 其他雜項</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label className="text-xs text-slate-400 mb-1 block">金額</label>
+                                <div className="flex items-center bg-slate-900 border border-slate-600 rounded p-2 focus-within:border-amber-500">
+                                    <span className="text-slate-400 mr-2">$</span>
+                                    <input 
+                                        type="number" 
+                                        value={expenseAmount}
+                                        onChange={(e) => setExpenseAmount(e.target.value)}
+                                        placeholder="輸入花費金額"
+                                        className="bg-transparent w-full outline-none text-slate-200"
+                                    />
+                                </div>
+                            </div>
+                            <button type="submit" className="w-full bg-red-900/50 hover:bg-red-800/80 border border-red-500 text-red-200 font-bold py-2 rounded transition-colors shadow-[0_0_10px_rgba(239,68,68,0.2)]">
+                                確定紀錄 (+EXP, +金幣)
+                            </button>
+                        </form>
+                    </Card>
+
+                    <Card>
+                        <h3 className="font-bold mb-4 flex items-center text-blue-400">
+                            <i className="ph-fill ph-sparkle text-xl mr-2"></i> 撰寫日記 (凝聚靈力)
+                        </h3>
+                        <form onSubmit={handleWriteDiary} className="space-y-3">
+                            <div>
+                                <label className="text-xs text-slate-400 mb-1 block">今日心得與感恩</label>
+                                <textarea 
+                                    value={diaryContent}
+                                    onChange={(e) => setDiaryContent(e.target.value)}
+                                    placeholder="寫下今天發生的一件好事..."
+                                    rows={3}
+                                    className="w-full bg-slate-900 border border-slate-600 rounded p-2 text-slate-200 outline-none focus:border-blue-500 resize-none"
+                                />
+                            </div>
+                            <button type="submit" className="w-full bg-blue-900/50 hover:bg-blue-800/80 border border-blue-500 text-blue-200 font-bold py-2 rounded transition-colors shadow-[0_0_10px_rgba(59,130,246,0.2)]">
+                                封印日記 (大量 +EXP)
+                            </button>
+                        </form>
+                    </Card>
+                </div>
+            );
+
+            const renderQuests = () => (
+                <div className="space-y-4 pb-24">
+                    <div className="bg-slate-800/50 border border-slate-600 p-3 rounded text-sm text-slate-300 flex items-start">
+                        <i className="ph-fill ph-target w-5 h-5 mr-2 text-yellow-500 shrink-0 mt-0.5"></i>
+                        <p>完成佈告欄上的任務來獲取豐富的經驗值與金幣獎勵！</p>
+                    </div>
+
+                    {quests.map(quest => (
+                        <Card key={quest.id} className={quest.claimed ? 'opacity-50 grayscale' : ''}>
+                            <div className="flex justify-between items-start mb-2">
+                                <h4 className="font-bold text-slate-200">{quest.title}</h4>
+                                {quest.claimed && <span className="text-xs bg-slate-700 text-slate-300 px-2 py-1 rounded">已領取</span>}
+                            </div>
+                            
+                            <div className="mb-3">
+                                <ProgressBar 
+                                    current={quest.progress} 
+                                    max={quest.target} 
+                                    colorClass="bg-blue-500" 
+                                    label="任務進度"
+                                />
+                            </div>
+
+                            <div className="flex justify-between items-center">
+                                <div className="flex space-x-3 text-xs font-mono">
+                                    <span className="flex items-center text-blue-300">
+                                        <i className="ph-fill ph-arrow-circle-up w-4 h-4 mr-1"></i> {quest.expReward} EXP
+                                    </span>
+                                    <span className="flex items-center text-yellow-300">
+                                        <i className="ph-fill ph-coin w-4 h-4 mr-1"></i> {quest.goldReward}
+                                    </span>
+                                </div>
+                                
+                                <button 
+                                    onClick={() => handleClaimQuest(quest.id)}
+                                    disabled={quest.progress < quest.target || quest.claimed}
+                                    className={`px-3 py-1 rounded text-sm font-bold transition-all ${
+                                        quest.claimed ? 'bg-slate-700 text-slate-500 cursor-not-allowed' :
+                                        quest.progress >= quest.target ? 'bg-amber-500 text-slate-900 hover:bg-amber-400 shadow-[0_0_10px_rgba(245,158,11,0.5)] cursor-pointer' : 
+                                        'bg-slate-700 text-slate-400 cursor-not-allowed'
+                                    }`}
+                                >
+                                    {quest.claimed ? '已完成' : '領取獎勵'}
+                                </button>
+                            </div>
+                        </Card>
+                    ))}
+                </div>
+            );
+
+            const renderBosses = () => (
+                <div className="space-y-4 pb-24">
+                    <div className="bg-red-900/20 border border-red-900/50 p-3 rounded text-sm text-slate-300 flex items-start">
+                        <i className="ph-fill ph-swords w-5 h-5 mr-2 text-red-500 shrink-0 mt-0.5"></i>
+                        <p>將未來的購物目標具象化為巨獸！透過「實際存下的錢」來對 Boss 造成真實傷害！</p>
+                    </div>
+
+                    {bosses.map(boss => (
+                        <Card key={boss.id} className={`relative overflow-hidden ${boss.isDefeated ? 'border-amber-500 bg-amber-900/20' : 'border-red-900/50 bg-slate-800'}`}>
+                            {boss.isDefeated && (
+                                <div className="absolute inset-0 flex items-center justify-center z-10 bg-black/40 backdrop-blur-sm">
+                                    <div className="text-center transform -rotate-12 scale-110">
+                                        <div className="text-5xl font-black text-amber-500 drop-shadow-[0_0_10px_rgba(245,158,11,1)] border-4 border-amber-500 px-4 py-2 rounded-lg bg-black/50">
+                                            討伐成功
+                                        </div>
+                                        <p className="text-amber-200 mt-2 text-sm font-bold shadow-black drop-shadow-md">你已經存夠錢購買了！</p>
+                                    </div>
+                                </div>
+                            )}
+
+                            <div className="flex flex-col items-center mb-4">
+                                <div className="text-6xl mb-2 animate-pulse">👾</div>
+                                <h3 className="font-bold text-lg text-red-400 tracking-wider">{boss.name}</h3>
+                                <p className="text-xs text-slate-400 font-mono mt-1">LV.99 史詩級目標</p>
+                            </div>
+
+                            <div className="mb-6">
+                                <ProgressBar 
+                                    current={boss.currentHp} 
+                                    max={boss.maxHp} 
+                                    colorClass="bg-red-500" 
+                                    label="巨獸血量 (剩餘目標金額)"
+                                />
+                            </div>
+
+                            <div className="bg-slate-900 p-3 rounded border border-slate-700">
+                                <h4 className="text-sm font-bold text-slate-300 mb-2">發動攻擊 (存入省下的錢)</h4>
+                                <div className="flex space-x-2">
+                                    <div className="flex-1 flex items-center bg-slate-800 border border-slate-600 rounded px-2 focus-within:border-red-500">
+                                        <span className="text-slate-400 mr-2">$</span>
+                                        <input 
+                                            type="number" 
+                                            value={bossDamage}
+                                            onChange={(e) => setBossDamage(e.target.value)}
+                                            placeholder="輸入存下的金額"
+                                            disabled={boss.isDefeated}
+                                            className="bg-transparent w-full outline-none text-slate-200 py-1.5"
+                                        />
+                                    </div>
+                                    <button 
+                                        onClick={() => handleAttackBoss(boss.id)}
+                                        disabled={boss.isDefeated || !bossDamage}
+                                        className="bg-red-600 hover:bg-red-500 disabled:bg-slate-700 disabled:text-slate-500 text-white font-bold px-4 py-1.5 rounded transition-colors flex items-center"
+                                    >
+                                        <i className="ph-fill ph-swords w-4 h-4 mr-1"></i> 攻擊
+                                    </button>
+                                </div>
+                            </div>
+                        </Card>
+                    ))}
+                </div>
+            );
+
+            return (
+                <div className="min-h-screen bg-slate-950 text-slate-200 font-sans">
+                    {/* 頂部狀態列 */}
+                    <div className="sticky top-0 z-50 bg-slate-900 border-b-2 border-slate-700 shadow-md px-4 py-3">
+                        <div className="max-w-md mx-auto flex items-center justify-between">
+                            <div className="flex items-center space-x-3 w-full">
+                                <div className="w-12 h-12 bg-slate-800 border-2 border-amber-500 rounded-full flex items-center justify-center font-bold text-amber-500 shrink-0 shadow-[0_0_10px_rgba(245,158,11,0.2)]">
+                                    Lv.{player.level}
+                                </div>
+                                <div className="flex-1">
+                                    <div className="flex justify-between items-end mb-1">
+                                        <span className="font-bold text-sm tracking-wide">{player.className}</span>
+                                        <span className="text-xs font-mono text-yellow-400 flex items-center">
+                                            <i className="ph-fill ph-coin w-3 h-3 mr-1"></i> {player.gold}
+                                        </span>
+                                    </div>
+                                    <ProgressBar 
+                                        current={player.exp} 
+                                        max={player.maxExp} 
+                                        colorClass="bg-amber-500" 
+                                        label="EXP" 
+                                    />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* 主要內容區 */}
+                    <main className="max-w-md mx-auto p-4 pt-6">
+                        {activeTab === 'home' && renderHome()}
+                        {activeTab === 'add' && renderAdd()}
+                        {activeTab === 'quests' && renderQuests()}
+                        {activeTab === 'bosses' && renderBosses()}
+                    </main>
+
+                    {/* 底部導覽列 */}
+                    <nav className="fixed bottom-0 w-full bg-slate-900 border-t-2 border-slate-700 z-50 pb-2">
+                        <div className="max-w-md mx-auto flex justify-around p-2">
+                            <button onClick={() => setActiveTab('home')} className={`flex flex-col items-center p-2 rounded-lg transition-colors ${activeTab === 'home' ? 'text-amber-400' : 'text-slate-500'}`}>
+                                <i className="ph-fill ph-house text-2xl mb-1"></i>
+                                <span className="text-[10px] font-bold">小屋</span>
+                            </button>
+                            <button onClick={() => setActiveTab('quests')} className={`flex flex-col items-center p-2 rounded-lg transition-colors ${activeTab === 'quests' ? 'text-amber-400' : 'text-slate-500'}`}>
+                                <i className="ph-fill ph-target text-2xl mb-1"></i>
+                                <span className="text-[10px] font-bold">任務</span>
+                            </button>
+                            <div className="relative -top-6">
+                                <button onClick={() => setActiveTab('add')} className="bg-amber-500 text-slate-950 p-4 rounded-full shadow-[0_0_15px_rgba(245,158,11,0.5)] border-4 border-slate-900">
+                                    <i className="ph-bold ph-plus text-3xl"></i>
+                                </button>
+                            </div>
+                            <button onClick={() => setActiveTab('bosses')} className={`flex flex-col items-center p-2 rounded-lg transition-colors ${activeTab === 'bosses' ? 'text-amber-400' : 'text-slate-500'}`}>
+                                <i className="ph-fill ph-swords text-2xl mb-1"></i>
+                                <span className="text-[10px] font-bold">討伐</span>
+                            </button>
+                            <button className={`flex flex-col items-center p-2 rounded-lg transition-colors text-slate-500 opacity-50 cursor-not-allowed`}>
+                                <i className="ph-fill ph-user text-2xl mb-1"></i>
+                                <span className="text-[10px] font-bold">裝備</span>
+                            </button>
+                        </div>
+                    </nav>
+                </div>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>

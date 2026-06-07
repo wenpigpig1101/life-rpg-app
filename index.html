@@ -25,6 +25,7 @@
         }
         ::-webkit-scrollbar { display: none; }
 
+        /* 卡片設計 */
         .bento-card {
             background-color: var(--card-white); border-radius: 32px;
             box-shadow: 0 8px 24px rgba(74, 124, 89, 0.04), 0 2px 8px rgba(74, 124, 89, 0.02);
@@ -34,9 +35,11 @@
         
         .bento-item { background: #F4F5F3; border-radius: 24px; padding: 16px; }
 
+        /* 經驗值與任務 */
         .exp-bar { height: 8px; background-color: #E8EBE9; border-radius: 999px; overflow: hidden; }
         .exp-fill { height: 100%; background-color: var(--yellow-warm); transition: width 0.5s ease-out; }
 
+        /* 標籤 Tag */
         .tag-pill {
             display: inline-block; background-color: rgba(163, 184, 153, 0.2); color: var(--green-deep);
             padding: 8px 14px; border-radius: 12px; font-weight: bold; font-size: 13px; cursor: pointer; transition: 0.2s;
@@ -45,6 +48,7 @@
         .tag-pill:active { transform: scale(0.9); background-color: var(--green-soft); color: white; }
         .tag-pill.selected { background-color: var(--green-deep); color: white; border-color: var(--green-deep); }
 
+        /* 磨砂玻璃信封 (時光膠囊) */
         .glass-envelope {
             background: rgba(255, 255, 255, 0.4); backdrop-filter: blur(12px); border: 2px solid rgba(255, 255, 255, 0.8);
             box-shadow: 0 10px 30px rgba(0,0,0,0.05), inset 0 0 20px rgba(255,255,255,0.5);
@@ -56,6 +60,7 @@
             transition: height 1s cubic-bezier(0.34, 1.56, 0.64, 1); opacity: 0.8; z-index: 0;
         }
 
+        /* 冰凍卡片 (想要不等於需要) */
         .ice-card {
             border: 2px solid #E0F2F1; border-radius: 20px; transition: all 0.5s; background: white;
             box-shadow: inset 0 0 15px rgba(224,242,241,0.5); position: relative; overflow: hidden;
@@ -65,6 +70,7 @@
             border: 2px solid #B2DFDB; filter: grayscale(0.3) brightness(0.95);
         }
 
+        /* 光束飛入動畫 */
         @keyframes flyIntoEnvelope {
             0% { transform: translateY(0) scale(1); opacity: 1; filter: brightness(1); }
             40% { transform: translateY(-100px) scale(1.2); filter: brightness(1.5); }
@@ -72,6 +78,7 @@
         }
         .fly-anim { animation: flyIntoEnvelope 0.8s cubic-bezier(0.25, 1, 0.3, 1) forwards; pointer-events: none; z-index: 50; }
 
+        /* 月底雜誌 Zine */
         .zine-modal {
             position: fixed; inset: 0; z-index: 100; background: #FAF8F5; overflow-y: auto;
             animation: slideUp 0.5s cubic-bezier(0.16, 1, 0.3, 1);
@@ -79,6 +86,7 @@
         .zine-cover { background-image: linear-gradient(to bottom, rgba(0,0,0,0.1), rgba(0,0,0,0.7)), url('https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&q=80&w=800'); background-size: cover; background-position: center; }
         @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
 
+        /* UI 元件 */
         .bottom-nav { background-color: rgba(255,255,255,0.95); backdrop-filter: blur(10px); border-top-left-radius: 32px; border-top-right-radius: 32px; box-shadow: 0 -4px 24px rgba(44, 62, 53, 0.05); }
         .natural-input { background: var(--card-white); border: 2px solid #E8EBE9; border-radius: 999px; padding: 16px 24px; width: 100%; color: var(--text-dark); font-weight: bold; outline: none; transition: 0.2s; box-shadow: 0 10px 25px rgba(0,0,0,0.05); }
         .natural-input:focus { border-color: var(--green-soft); box-shadow: 0 10px 25px rgba(163, 184, 153, 0.2); }
@@ -90,7 +98,7 @@
         }
         @keyframes slideDown { from { top: -50px; opacity: 0; } to { top: 20px; opacity: 1; } }
         @keyframes fadeOut { to { opacity: 0; visibility: hidden; } }
-        .fade-in { animation: fadeIn 0.3s ease-out forwards; }
+        .fade-in { animation: fadeIn 0.4s ease-out forwards; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
     </style>
 </head>
@@ -110,32 +118,33 @@
 
         const INITIAL_STATE = {
             player: { level: 2, exp: 60, maxExp: 100 },
-            assets: 152400, // 初始總資產
+            assets: 152400, // 初始浮動資產
             spent: 0, // 本月累計花費
             
-            // 移除 daysLeft，變成純粹的待繳清單
+            // 根據照片整理的固定支出 (移除倒數天數，新增 paid 狀態)
             bills: [
-                { id: 'b1', name: '房租', amount: 15000 },
-                { id: 'b2', name: '婷', amount: 30000 },
-                { id: 'b3', name: '美金', amount: 10000 },
-                { id: 'b4', name: '油錢', amount: 10000 },
-                { id: 'b5', name: '汽車9900 摩托車600', amount: 10500 },
-                { id: 'b6', name: '中信卡費', amount: 6000 },
-                { id: 'b7', name: '媽', amount: 5000 },
-                { id: 'b8', name: '3人健保', amount: 4956 },
-                { id: 'b9', name: '摩托車800貨車4500', amount: 5300 },
-                { id: 'b10', name: '婆婆保險', amount: 3000 },
-                { id: 'b11', name: 'Q保費', amount: 3000 },
-                { id: 'b12', name: '豬手機話費', amount: 3000 },
-                { id: 'b13', name: '成保費', amount: 2500 },
-                { id: 'b14', name: '中華電信網路費', amount: 1299 },
-                { id: 'b15', name: '05月/11月驗車', amount: 450 },
-                { id: 'b16', name: 'Bo弟保費', amount: 0, note: '每月20號' },
-                { id: 'b17', name: '成手機話費', amount: 0 },
-                { id: 'b18', name: 'Visa卡', amount: 0 },
-                { id: 'b19', name: '貨車保養', amount: 0 }
+                { id: 'b1', name: '房租', amount: 15000, paid: false },
+                { id: 'b2', name: '婷', amount: 30000, paid: false },
+                { id: 'b3', name: '美金', amount: 10000, paid: false },
+                { id: 'b4', name: '油錢', amount: 10000, paid: false },
+                { id: 'b5', name: '汽車9900 摩托車600', amount: 10500, paid: false },
+                { id: 'b6', name: '中信卡費', amount: 6000, paid: false },
+                { id: 'b7', name: '媽', amount: 5000, paid: false },
+                { id: 'b8', name: '3人健保', amount: 4956, paid: false },
+                { id: 'b9', name: '摩托車800貨車4500', amount: 5300, paid: false },
+                { id: 'b10', name: '婆婆保險', amount: 3000, paid: false },
+                { id: 'b11', name: 'Q保費', amount: 3000, paid: false },
+                { id: 'b12', name: '豬手機話費', amount: 3000, paid: false },
+                { id: 'b13', name: '成保費', amount: 2500, paid: false },
+                { id: 'b14', name: '中華電信網路費', amount: 1299, paid: false },
+                { id: 'b15', name: '05月/11月驗車', amount: 450, paid: false },
+                { id: 'b16', name: 'Bo弟保費', amount: 0, paid: false, note: '每月20號' },
+                { id: 'b17', name: '成手機話費', amount: 0, paid: false },
+                { id: 'b18', name: 'Visa卡', amount: 0, paid: false },
+                { id: 'b19', name: '貨車保養', amount: 0, paid: false }
             ],
             
+            // 常用標籤
             quickTags: [
                 '成成的煙', '豬豬的煙', '成成的咖啡', '早餐', '午餐', '晚餐', '下午茶', '宵夜',
                 '奶粉', 'Bo弟奶粉', '尿布', 'Q尿布', 'Bo弟尿布', '保久乳', '羊奶', '乳酸菌、寶乖亞',
@@ -155,8 +164,25 @@
         };
 
         function App() {
-            const [data, setData] = useState(INITIAL_STATE);
-            const [activeTab, setActiveTab] = useState('home'); 
+            // --- 核心：資料持久化 ---
+            const [data, setData] = useState(() => {
+                const savedData = localStorage.getItem('piggy_lifeos_data');
+                if (savedData) {
+                    try {
+                        return JSON.parse(savedData);
+                    } catch(e) {
+                        console.error("讀取存檔失敗", e);
+                    }
+                }
+                return INITIAL_STATE;
+            });
+
+            // 每次資料更新時，存入 localStorage
+            useEffect(() => {
+                localStorage.setItem('piggy_lifeos_data', JSON.stringify(data));
+            }, [data]);
+
+            const [activeTab, setActiveTab] = useState('home'); // home, expense, journal, future
             const [toastMsg, setToastMsg] = useState(null);
             
             // 花費頁面狀態
@@ -263,16 +289,19 @@
                 setJournalInput('');
             };
 
-            // 3. 處理固定支出
-            const handlePayBill = (bill) => {
-                setData(p => ({ 
-                    ...p, 
-                    assets: p.assets - bill.amount, 
-                    spent: p.spent + bill.amount,
-                    bills: p.bills.filter(b => b.id !== bill.id) 
-                }));
-                gainRewards(15);
-                showToast(`✅ 已扣款固定支出：${bill.name} $${bill.amount}`);
+            // 3. 處理固定支出 (改為純狀態切換，不扣款)
+            const toggleBillStatus = (billId) => {
+                setData(p => {
+                    const newBills = p.bills.map(b => {
+                        if (b.id === billId) {
+                            const newStatus = !b.paid;
+                            showToast(newStatus ? `✅ 已標記支付：${b.name}` : `↩️ 已取消支付：${b.name}`);
+                            return { ...b, paid: newStatus };
+                        }
+                        return b;
+                    });
+                    return { ...p, bills: newBills };
+                });
             };
 
             // 4. 慾望冰塊 (解凍與轉存)
@@ -301,7 +330,6 @@
             };
 
             // --- 編輯功能邏輯 ---
-            
             const handleUpdateGoal = () => {
                 const target = parseInt(editGoalTarget);
                 const current = parseInt(editGoalCurrent);
@@ -314,8 +342,7 @@
 
             const handleAddBill = () => {
                 if(!newItemName) return;
-                const newBill = { id: Date.now(), name: newItemName, amount: parseInt(newItemCost)||0 };
-                // 新增至末尾
+                const newBill = { id: Date.now().toString(), name: newItemName, amount: parseInt(newItemCost)||0, paid: false };
                 setData(p => ({ ...p, bills: [...p.bills, newBill] }));
                 setNewItemName(''); setNewItemCost(''); showToast('📡 已新增固定支出');
             };
@@ -356,19 +383,23 @@
                             <h3 className="font-black text-lg flex items-center text-amber-900"><span className="text-2xl mr-2">📡</span> 固定支出雷達</h3>
                             <button onClick={() => setActionSheet('editBills')} className="text-xs bg-amber-100 text-amber-800 px-3 py-1.5 rounded-xl font-black">⚙️ 編輯雷達</button>
                         </div>
+                        
                         <div className="space-y-3 max-h-[60vh] overflow-y-auto pr-2 pb-4">
-                            {data.bills.length === 0 && <p className="text-sm text-center text-[var(--text-muted)] font-bold py-8">本月固定支出已全數繳清！</p>}
+                            {data.bills.length === 0 && <p className="text-sm text-center text-[var(--text-muted)] font-bold py-8">目前沒有固定支出項目</p>}
                             {data.bills.map((bill) => (
-                                <div key={bill.id} className="bento-item bg-white shadow-sm border border-[#EED7A1] !p-4">
+                                <div key={bill.id} className={`bento-item shadow-sm border transition-all duration-300 !p-4 ${bill.paid ? 'bg-gray-50 border-gray-200 opacity-60' : 'bg-white border-[#EED7A1]'}`}>
                                     <div className="flex justify-between items-start mb-2">
                                         <div>
-                                            <p className="font-bold text-[var(--text-dark)]">{bill.name}</p>
+                                            <p className={`font-bold ${bill.paid ? 'text-gray-400 line-through' : 'text-[var(--text-dark)]'}`}>{bill.name}</p>
                                             {bill.note && <p className="text-[10px] text-gray-400 mt-0.5">{bill.note}</p>}
                                         </div>
-                                        <span className="font-black text-lg">${bill.amount}</span>
+                                        <span className={`font-black text-lg ${bill.paid ? 'text-gray-400' : 'text-[var(--text-dark)]'}`}>${bill.amount}</span>
                                     </div>
-                                    <button onClick={() => handlePayBill(bill)} className="w-full bg-[var(--green-deep)] text-white text-xs font-bold py-3 rounded-xl mt-2 active:scale-95 transition-transform">
-                                        ✅ 從現有資產扣除此筆
+                                    <button 
+                                        onClick={() => toggleBillStatus(bill.id)} 
+                                        className={`w-full text-xs font-bold py-3 rounded-xl mt-2 active:scale-95 transition-transform ${bill.paid ? 'bg-gray-200 text-gray-500' : 'bg-[#F4F5F3] text-[var(--green-deep)]'}`}
+                                    >
+                                        {bill.paid ? '↩️ 標記為未支付' : '✅ 標記為已支付'}
                                     </button>
                                 </div>
                             ))}
@@ -377,12 +408,12 @@
                 </div>
             );
 
-            // 頁籤 2: 每日花費 (含置頂存款與快捷記帳)
+            // 頁籤 2: 每日花費
             const renderExpenseView = () => {
                 const percent = Math.min(100, Math.floor((data.envelope.current / data.envelope.target) * 100));
                 return (
                     <div className="space-y-4 fade-in mt-2 pb-32">
-                        {/* 置頂存款目標 (可編輯) */}
+                        {/* 置頂存款目標 */}
                         <div className="bg-amber-100 p-4 rounded-3xl border border-amber-200 flex items-center justify-between shadow-sm relative overflow-hidden">
                             <button onClick={() => {
                                 setEditGoalTarget(data.envelope.target);
@@ -397,7 +428,7 @@
                             <div className="text-right relative z-10 pt-4">
                                 <span className="font-black text-2xl text-amber-600">{percent}%</span>
                             </div>
-                            <div className="absolute left-0 top-0 h-full bg-amber-200/40" style={{ width: `${percent}%` }}></div>
+                            <div className="absolute left-0 top-0 h-full bg-amber-200/40 transition-all duration-500" style={{ width: `${percent}%` }}></div>
                         </div>
 
                         {/* 資產與支出統計 */}
@@ -596,7 +627,7 @@
                             </div>
                             
                             <div className="bg-amber-50 p-6 rounded-3xl mb-6 text-center border border-amber-100">
-                                <p className="text-sm font-bold text-amber-800 mb-1">今年為此花費</p>
+                                <p className="text-sm font-bold text-amber-800 mb-1">總計花費</p>
                                 <p className="text-4xl font-black text-[var(--brown-dirt)]">${total.toLocaleString()}</p>
                             </div>
                             
@@ -623,14 +654,14 @@
                     <div className="zine-modal flex flex-col z-[100]">
                         <div className="zine-cover h-[60vh] relative flex flex-col justify-end p-8 text-white">
                             <button onClick={() => setShowZine(false)} className="absolute top-10 right-6 w-10 h-10 bg-black/40 backdrop-blur-md rounded-full flex items-center justify-center font-black">X</button>
-                            <p className="text-sm font-bold tracking-widest mb-2 opacity-80">MONTHLY ZINE . VOL.10</p>
+                            <p className="text-sm font-bold tracking-widest mb-2 opacity-80">MONTHLY ZINE . PIGGY</p>
                             <h1 className="text-5xl font-black leading-tight mb-4">十月<br/>秋日的平靜<br/>與沉澱</h1>
                         </div>
                         <div className="p-8 space-y-8 bg-[#FAF8F5] -mt-10 rounded-t-[40px] relative z-10 flex-1">
                             <div>
                                 <h3 className="text-xl font-black mb-3">情緒與消費</h3>
                                 <p className="text-sm leading-loose text-gray-600 font-bold">
-                                    這個月你最常標註的關鍵字是 <span className="text-[var(--green-deep)] text-lg">#澎湖</span>，且成功在「想要不等於需要」煞車了，省下了龐大的資金！<br/><br/>
+                                    這個月你成功在「想要不等於需要」煞車了，省下了龐大的資金！<br/><br/>
                                     這些錢已經為你的【一桶金目標】注入了能量。你做得非常棒，豬豬。
                                 </p>
                             </div>
@@ -682,7 +713,7 @@
                                 <div>
                                     <div className="flex justify-between items-center mb-4"><h3 className="font-black text-lg">⚙️ 編輯固定支出雷達</h3><button onClick={() => setActionSheet(null)} className="text-sm font-bold text-[var(--text-muted)]">完成</button></div>
                                     <div className="bg-[#F4F5F3] p-4 rounded-2xl mb-6 space-y-3">
-                                        <p className="text-xs font-bold text-[var(--text-muted)]">新增固定帳單</p>
+                                        <p className="text-xs font-bold text-[var(--text-muted)]">新增項目</p>
                                         <input type="text" value={newItemName} onChange={e=>setNewItemName(e.target.value)} placeholder="名稱 (例如: 托嬰費)" className="input-eco py-3 bg-white" />
                                         <input type="number" value={newItemCost} onChange={e=>setNewItemCost(e.target.value)} placeholder="金額 ($)" className="input-eco py-3 bg-white w-full" />
                                         <button onClick={handleAddBill} className="w-full bg-[var(--text-dark)] text-white font-bold py-3 rounded-xl mt-2 active:scale-95 transition-transform">新增帳單</button>

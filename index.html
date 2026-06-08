@@ -40,7 +40,7 @@
 
         .bottom-nav { background-color: rgba(255,255,255,0.95); backdrop-filter: blur(10px); border-top-left-radius: 32px; border-top-right-radius: 32px; box-shadow: 0 -4px 24px rgba(44, 62, 53, 0.05); }
         .input-eco { background: #F4F5F3; border: 2px solid transparent; border-radius: 20px; padding: 16px 20px; width: 100%; color: var(--text-dark); font-weight: bold; outline: none; transition: 0.2s; }
-        .input-eco:focus { border-color: var(--green-soft); background: #fff; box-shadow: 0 4px 12px rgba(163, 184, 153, 0.2); }
+        .input-eco:focus { border-color: var(--green-soft); background: #fff; box-shadow: 0 4px 12px rgba(163, 184, 153, 0.15); }
         
         .toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: var(--text-dark); color: white; padding: 12px 24px; border-radius: 999px; font-weight: bold; font-size: 14px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); z-index: 110; animation: slideDown 0.3s forwards, fadeOut 0.3s 2.7s forwards; white-space: nowrap; }
         @keyframes slideDown { from { top: -50px; opacity: 0; } to { top: 20px; opacity: 1; } }
@@ -49,6 +49,13 @@
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
         .bottom-sheet { background: var(--card-white); border-top-left-radius: 40px; border-top-right-radius: 40px; box-shadow: 0 -10px 40px rgba(0,0,0,0.1); max-height: 85vh; overflow-y: auto; padding-bottom: max(env(safe-area-inset-bottom), 24px); }
+
+        /* 365 Grid */
+        .grid-365 { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 8px; }
+        .cell-365 { aspect-ratio: 1 / 1; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 900; transition: all 0.2s; cursor: pointer; }
+        .cell-saved { background-color: var(--green-deep); color: white; box-shadow: 0 4px 10px rgba(74, 124, 89, 0.3); transform: scale(1.05); }
+        .cell-unsaved { background-color: #F4F5F3; color: var(--text-muted); border: 1px solid #E8EBE9; }
+        .cell-unsaved:active { transform: scale(0.9); }
     </style>
 </head>
 <body>
@@ -67,11 +74,12 @@
 
         const DEFAULT_STATE = {
             player: { level: 2, exp: 60, maxExp: 100 },
-            assets: 152400, // 現有浮動資產
-            spent: 0, // 本月累計支出
-            expenses: [], // 歷史支出紀錄 {id, title, amount, category, date: 'YYYY-MM-DD'}
+            assets: 152400, 
+            spent: 0, 
+            expenses: [], 
             
-            // 固定支出 (只記狀態，不扣錢)
+            savings365: [], // 紀錄 365 存錢法已存的數字
+            
             bills: [
                 { id: 'b1', name: '房租', amount: 15000, paid: false },
                 { id: 'b2', name: '婷', amount: 30000, paid: false },
@@ -100,12 +108,10 @@
                 '加油', '生活用品', '嬰幼用品', '疫苗接種', '洗衣機修理費', '澎湖'
             ],
             
-            // 自訂儲蓄目標
             customGoals: [
                 { id: 1, name: '我要存一桶金', target: 1000000, current: 0 }
             ],
             
-            // 想要不等於需要
             wishes: [
                 { id: 1, name: '新款 Dyson 吸塵器', cost: 4000, frozen: true, reason: '舊的壞了' },
                 { id: 2, name: '名牌小包包', cost: 8500, frozen: true, reason: '犒賞自己' } 
@@ -113,16 +119,22 @@
         };
 
         function App() {
+            // 完美繼承上一版的舊資料，並加上新版所需的 savings365 陣列
             const [data, setData] = useState(() => {
                 const saved = localStorage.getItem('piggy_life_data_v3');
-                return saved ? JSON.parse(saved) : DEFAULT_STATE;
+                let parsed = DEFAULT_STATE;
+                if (saved) {
+                    try { parsed = { ...DEFAULT_STATE, ...JSON.parse(saved) }; } catch(e) {}
+                }
+                if (!parsed.savings365) parsed.savings365 = []; // 確保有新屬性
+                return parsed;
             });
 
             useEffect(() => {
                 localStorage.setItem('piggy_life_data_v3', JSON.stringify(data));
             }, [data]);
 
-            const [activeTab, setActiveTab] = useState('home'); 
+            const [activeTab, setActiveTab] = useState('home'); // home(365), bills, expense, stats, future
             const [toastMsg, setToastMsg] = useState(null);
             
             // 花費頁面狀態
@@ -132,18 +144,15 @@
             const [showEditTags, setShowEditTags] = useState(false);
             const [newTag, setNewTag] = useState('');
             
-            // 彈出視窗與動畫
             const [actionSheet, setActionSheet] = useState(null);
-            const [expandedMonth, setExpandedMonth] = useState(''); // 統計明細展開的月份
+            const [expandedMonth, setExpandedMonth] = useState('');
             
-            // 編輯資產/目標暫存
             const [editAssetsAmount, setEditAssetsAmount] = useState('');
             const [editGoalTarget, setEditGoalTarget] = useState('');
             const [editGoalCurrent, setEditGoalCurrent] = useState('');
             const [editGoalName, setEditGoalName] = useState('');
             const [editingGoalId, setEditingGoalId] = useState(null);
 
-            // 新增帳單/願望暫存
             const [newItemName, setNewItemName] = useState('');
             const [newItemCost, setNewItemCost] = useState('');
 
@@ -163,7 +172,22 @@
 
             // --- 核心操作 ---
 
-            // 1. 快捷記帳 (花費頁面)
+            // 1. 365 存錢打卡
+            const toggleSaving365 = (dayAmount) => {
+                setData(p => {
+                    const newSavings = p.savings365.includes(dayAmount)
+                        ? p.savings365.filter(a => a !== dayAmount)
+                        : [...p.savings365, dayAmount];
+                    return { ...p, savings365: newSavings };
+                });
+                
+                if (!data.savings365.includes(dayAmount)) {
+                    gainRewards(5);
+                    showToast(`🐷 成功存下 $${dayAmount}！`);
+                }
+            };
+
+            // 2. 快捷記帳 (花費頁面)
             const handleRecordExpense = () => {
                 if (!expenseAmount || !expenseTitle) {
                     showToast("⚠️ 請輸入名稱以及金額");
@@ -175,42 +199,24 @@
                     const d = new Date();
                     const dateStr = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
                     const newExpense = { 
-                        id: Date.now(), 
-                        title: expenseTitle, 
-                        amount: amount, 
-                        category: expenseCategory,
-                        date: dateStr 
+                        id: Date.now(), title: expenseTitle, amount: amount, category: expenseCategory, date: dateStr 
                     };
-                    
-                    return { 
-                        ...p, 
-                        assets: p.assets - amount, 
-                        spent: p.spent + amount,
-                        expenses: [newExpense, ...(p.expenses || [])] 
-                    };
+                    return { ...p, assets: p.assets - amount, spent: p.spent + amount, expenses: [newExpense, ...(p.expenses || [])] };
                 });
                 
-                gainRewards(10);
-                showToast(`💸 已紀錄：${expenseTitle} $${amount}`);
+                gainRewards(10); showToast(`💸 已紀錄：${expenseTitle} $${amount}`);
                 setExpenseTitle(''); setExpenseAmount('');
             };
 
-            // 刪除花費紀錄
             const handleDeleteExpense = (id, amount) => {
-                setData(p => ({
-                    ...p,
-                    assets: p.assets + amount,
-                    spent: Math.max(0, p.spent - amount),
-                    expenses: p.expenses.filter(exp => exp.id !== id)
-                }));
+                setData(p => ({ ...p, assets: p.assets + amount, spent: Math.max(0, p.spent - amount), expenses: p.expenses.filter(exp => exp.id !== id) }));
                 showToast('🗑️ 已刪除該筆紀錄，資產已自動加回');
             };
 
-            // 2. 處理固定支出 (只記狀態，不扣錢)
+            // 3. 固定支出狀態 (不扣錢)
             const toggleBillStatus = (billId) => {
                 setData(p => ({
-                    ...p,
-                    bills: p.bills.map(b => {
+                    ...p, bills: p.bills.map(b => {
                         if (b.id === billId) {
                             showToast(!b.paid ? `✅ 已標記支付：${b.name}` : `↩️ 已取消支付：${b.name}`);
                             return { ...b, paid: !b.paid };
@@ -220,7 +226,7 @@
                 }));
             };
 
-            // 3. 處理慾望冰塊 (解凍與刪除)
+            // 4. 慾望冰塊
             const handleDefrost = (wishId) => {
                 const wish = data.wishes.find(w => w.id === wishId);
                 if (wish.frozen) {
@@ -232,14 +238,9 @@
             };
 
             // --- 編輯功能邏輯 ---
-            
             const handleUpdateAssets = () => {
                 const amt = parseInt(editAssetsAmount);
-                if (!isNaN(amt)) {
-                    setData(p => ({ ...p, assets: amt }));
-                    showToast('💰 資產已更新');
-                    setActionSheet(null);
-                }
+                if (!isNaN(amt)) { setData(p => ({ ...p, assets: amt })); showToast('💰 資產已更新'); setActionSheet(null); }
             };
 
             const handleSaveGoal = () => {
@@ -252,8 +253,7 @@
                         return { ...p, customGoals: [...newGoals, { id: Date.now(), name: editGoalName, target: parseInt(editGoalTarget)||0, current: parseInt(editGoalCurrent)||0 }] };
                     }
                 });
-                showToast('🎯 目標已儲存');
-                setActionSheet(null);
+                showToast('🎯 目標已儲存'); setActionSheet(null);
             };
             const handleDeleteGoal = (id) => { setData(p => ({ ...p, customGoals: p.customGoals.filter(g => g.id !== id) })); };
 
@@ -271,10 +271,10 @@
                 setNewItemName(''); setNewItemCost(''); showToast('❄️ 已停入慾望停車場');
             };
 
-            // --- 計算統計資料 (含分類與明細) ---
             const getStats = () => {
                 const expenses = data.expenses || [];
                 const monthlyData = {};
+                const yearlyData = {};
 
                 expenses.forEach(exp => {
                     if(!exp.date) return;
@@ -282,47 +282,87 @@
                     const yKey = `${d.getFullYear()}年`;
                     const mKey = `${d.getFullYear()}年 ${String(d.getMonth()+1).padStart(2,'0')}月`;
 
-                    if(!monthlyData[mKey]) {
-                        monthlyData[mKey] = { total: 0, items: [], categories: { food: 0, shopping: 0, transport: 0, life: 0, baby: 0 } };
-                    }
+                    if(!monthlyData[mKey]) monthlyData[mKey] = { total: 0, items: [], categories: { food: 0, shopping: 0, transport: 0, life: 0, baby: 0 } };
                     monthlyData[mKey].total += exp.amount;
                     monthlyData[mKey].items.push(exp);
-                    if (monthlyData[mKey].categories[exp.category] !== undefined) {
-                        monthlyData[mKey].categories[exp.category] += exp.amount;
-                    }
+                    if (monthlyData[mKey].categories[exp.category] !== undefined) monthlyData[mKey].categories[exp.category] += exp.amount;
+
+                    yearlyData[yKey] = (yearlyData[yKey] || 0) + exp.amount;
                 });
 
-                return Object.entries(monthlyData).sort((a,b) => b[0].localeCompare(a[0])).map(([month, md]) => {
-                    const catStats = Object.keys(md.categories)
-                        .map(k => ({ key: k, amount: md.categories[k], percent: md.total === 0 ? 0 : Math.round((md.categories[k]/md.total)*100), ...CATEGORY_CONFIG[k] }))
-                        .filter(c => c.amount > 0)
-                        .sort((a,b) => b.amount - a.amount);
-                    return { month, total: md.total, items: md.items, categories: catStats };
-                });
+                return {
+                    monthly: Object.entries(monthlyData).sort((a,b) => b[0].localeCompare(a[0])).map(([month, md]) => {
+                        const catStats = Object.keys(md.categories).map(k => ({ key: k, amount: md.categories[k], percent: md.total === 0 ? 0 : Math.round((md.categories[k]/md.total)*100), ...CATEGORY_CONFIG[k] })).filter(c => c.amount > 0).sort((a,b) => b.amount - a.amount);
+                        return { month, total: md.total, items: md.items, categories: catStats };
+                    }),
+                    yearly: Object.entries(yearlyData).sort((a,b) => b[0].localeCompare(a[0]))
+                };
             };
 
-            // 初始化時預設展開最新的一個月
-            const monthlyStats = getStats();
+            const statsData = getStats();
             useEffect(() => {
-                if (activeTab === 'stats' && !expandedMonth && monthlyStats.length > 0) {
-                    setExpandedMonth(monthlyStats[0].month);
+                if (activeTab === 'stats' && !expandedMonth && statsData.monthly.length > 0) {
+                    setExpandedMonth(statsData.monthly[0].month);
                 }
             }, [activeTab]);
 
             // --- 畫面渲染 ---
 
-            // 頁籤 1: 豬豬首頁 (固定支出)
-            const renderHomeView = () => (
-                <div className="space-y-4 fade-in mt-2 pb-24">
-                    <div className="flex justify-between items-center mb-6 px-2">
-                        <div className="flex items-center space-x-3">
-                            <div className="w-14 h-14 bg-white rounded-3xl shadow-sm flex items-center justify-center text-3xl border border-[#E8EBE9]">🐷</div>
-                            <div>
-                                <h1 className="text-xl font-black">Lv.{data.player.level} 豬豬</h1>
-                                <div className="w-24 mt-1"><div className="exp-bar"><div className="exp-fill" style={{ width: `${(data.player.exp/data.player.maxExp)*100}%` }}></div></div></div>
+            // 全局豬豬等級標頭
+            const renderPiggyHeader = () => (
+                <div className="flex items-center space-x-3 px-2 mb-4">
+                    <div className="w-14 h-14 bg-white rounded-3xl shadow-sm flex items-center justify-center text-3xl border border-[#E8EBE9]">🐷</div>
+                    <div>
+                        <h1 className="text-xl font-black">Lv.{data.player.level} 豬豬</h1>
+                        <div className="w-24 mt-1"><div className="exp-bar"><div className="exp-fill" style={{ width: `${(data.player.exp/data.player.maxExp)*100}%` }}></div></div></div>
+                    </div>
+                </div>
+            );
+
+            // 頁籤 1: 365 存錢法 (新首頁)
+            const render365View = () => {
+                const total365 = data.savings365.reduce((sum, val) => sum + val, 0);
+                const percent365 = Math.min(100, Math.floor((total365 / 66795) * 100));
+
+                return (
+                    <div className="space-y-4 fade-in mt-2 pb-32 h-full flex flex-col">
+                        {renderPiggyHeader()}
+
+                        <div className="bg-amber-100 p-5 rounded-3xl border border-amber-200 flex flex-col shadow-sm mb-4 flex-shrink-0">
+                            <p className="text-xs font-bold text-amber-800 mb-1">🎯 365天無痛存錢法</p>
+                            <h3 className="font-black text-2xl text-[var(--text-dark)]">累計已存：${total365.toLocaleString()}</h3>
+                            <div className="flex justify-between items-end mt-3 mb-1">
+                                <span className="text-[10px] font-bold text-amber-700">目標：$66,795</span>
+                                <span className="font-black text-sm text-amber-700">{percent365}%</span>
+                            </div>
+                            <div className="progress-track bg-amber-200/50"><div className="progress-fill bg-amber-500" style={{width: `${percent365}%`}}></div></div>
+                        </div>
+
+                        <div className="bento-card flex-1 flex flex-col min-h-0 !p-4">
+                            <h3 className="font-black text-sm text-[var(--text-muted)] mb-3 text-center">每天選一個數字存錢並打卡吧！</h3>
+                            <div className="grid-365 overflow-y-auto pr-1 pb-4 flex-1">
+                                {Array.from({length: 365}, (_, i) => i + 1).map(day => {
+                                    const isSaved = data.savings365.includes(day);
+                                    return (
+                                        <div 
+                                            key={day} 
+                                            onClick={() => toggleSaving365(day)}
+                                            className={`cell-365 ${isSaved ? 'cell-saved' : 'cell-unsaved'}`}
+                                        >
+                                            {day}
+                                        </div>
+                                    );
+                                })}
                             </div>
                         </div>
                     </div>
+                );
+            };
+
+            // 頁籤 2: 固定支出雷達
+            const renderBillsView = () => (
+                <div className="space-y-4 fade-in mt-2 pb-24">
+                    {renderPiggyHeader()}
 
                     <div className="bento-card border border-amber-200 bg-[#FFFCF5]">
                         <div className="flex justify-between items-center mb-4">
@@ -352,14 +392,15 @@
                 </div>
             );
 
-            // 頁籤 2: 每日花費
+            // 頁籤 3: 每日花費 (浮動資產可編輯)
             const renderExpenseView = () => {
-                const goal = data.customGoals?.[0] || { name: '存錢目標', target: 100000, current: 0 };
+                const goal = data.customGoals?.[0] || { name: '存錢目標', target: 1000000, current: 0 };
                 const percent = Math.min(100, Math.floor((goal.current / goal.target) * 100)) || 0;
                 
                 return (
                     <div className="space-y-4 fade-in mt-2 pb-32">
-                        {/* 置頂存款目標 */}
+                        {renderPiggyHeader()}
+
                         <div className="bg-amber-100 p-4 rounded-3xl border border-amber-200 flex items-center justify-between shadow-sm relative overflow-hidden">
                             <button onClick={() => {
                                 setEditGoalTarget(goal.target); setEditGoalCurrent(goal.current); setEditGoalName(goal.name); setEditingGoalId(goal.id); setActionSheet('editGoal');
@@ -375,7 +416,6 @@
                             <div className="absolute left-0 top-0 h-full bg-amber-200/40 transition-all duration-500" style={{ width: `${percent}%` }}></div>
                         </div>
 
-                        {/* 資產與支出統計 */}
                         <div className="grid grid-cols-2 gap-3">
                             <div className="bg-white p-5 rounded-3xl border border-gray-100 shadow-sm relative">
                                 <button onClick={() => { setEditAssetsAmount(data.assets); setActionSheet('editAssets'); }} className="absolute top-3 right-3 text-xs bg-gray-100 text-gray-500 px-2 py-1 rounded-lg font-bold">⚙️編輯</button>
@@ -389,7 +429,6 @@
                             </div>
                         </div>
 
-                        {/* 快捷記帳表單 */}
                         <div className="bento-card">
                             <div className="flex justify-between items-center mb-4">
                                 <h3 className="font-black text-lg flex items-center"><span className="text-2xl mr-2">💸</span> 快速記筆開銷</h3>
@@ -443,33 +482,41 @@
                 );
             };
 
-            // 頁籤 3: 支出統計 (含明細)
+            // 頁籤 4: 支出統計 
             const renderStatsView = () => {
                 return (
-                    <div className="h-full flex flex-col pt-4 fade-in pb-32">
+                    <div className="h-full flex flex-col pt-6 fade-in pb-32">
                         <h2 className="text-2xl font-black mb-6 px-2">歷史支出統計</h2>
                         
                         <div className="space-y-4">
-                            {monthlyStats.length === 0 && <p className="text-sm text-gray-400 font-bold text-center py-6">目前沒有任何開銷紀錄喔！</p>}
+                            {/* 年度統計 */}
+                            <div className="bento-card bg-amber-50 border border-amber-200">
+                                <h3 className="font-bold text-amber-900 mb-4 flex items-center"><span className="text-2xl mr-2">📅</span> 年度總支出</h3>
+                                {statsData.yearly.length === 0 && <p className="text-sm text-amber-700/50 font-bold">目前沒有年度資料</p>}
+                                <div className="space-y-3">
+                                    {statsData.yearly.map(([year, amount]) => (
+                                        <div key={year} className="flex justify-between items-center bg-white p-4 rounded-2xl shadow-sm">
+                                            <span className="font-bold text-[var(--text-dark)]">{year}</span>
+                                            <span className="font-black text-xl text-[var(--brown-dirt)]">${amount.toLocaleString()}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+
+                            <h3 className="font-bold text-lg mb-2 px-2 mt-4 flex items-center"><span className="text-2xl mr-2">📉</span> 每月明細</h3>
+                            {statsData.monthly.length === 0 && <p className="text-sm text-gray-400 font-bold text-center py-6">目前沒有月度資料，去記一筆帳吧！</p>}
                             
-                            {monthlyStats.map((stat) => (
+                            {statsData.monthly.map((stat) => (
                                 <div key={stat.month} className="bento-card !p-0 bg-white border border-gray-100 shadow-sm overflow-hidden mb-4">
-                                    {/* 月份卡片 Header (點擊展開) */}
-                                    <div 
-                                        className="p-5 flex justify-between items-center cursor-pointer bg-amber-50/50 active:bg-amber-100 transition-colors"
-                                        onClick={() => setExpandedMonth(expandedMonth === stat.month ? null : stat.month)}
-                                    >
+                                    <div className="p-5 flex justify-between items-center cursor-pointer bg-amber-50/50 active:bg-amber-100 transition-colors" onClick={() => setExpandedMonth(expandedMonth === stat.month ? null : stat.month)}>
                                         <div>
                                             <h3 className="font-black text-lg text-[var(--text-dark)]">{stat.month}</h3>
                                             <p className="text-[10px] font-bold text-gray-500 mt-1">{expandedMonth === stat.month ? '▲ 點擊收合' : '▼ 點擊展開明細'}</p>
                                         </div>
                                         <span className="font-black text-2xl text-[var(--brown-dirt)]">${stat.total.toLocaleString()}</span>
                                     </div>
-
-                                    {/* 展開後的明細內容 */}
                                     {expandedMonth === stat.month && (
                                         <div className="p-5 border-t border-gray-100 bg-white fade-in">
-                                            {/* 1. 分類佔比 */}
                                             <div className="mb-6 space-y-3">
                                                 <h4 className="text-xs font-bold text-[var(--text-muted)] mb-3">📊 分類佔比</h4>
                                                 {stat.categories.map((cat, idx) => (
@@ -479,8 +526,6 @@
                                                     </div>
                                                 ))}
                                             </div>
-
-                                            {/* 2. 支出流水帳明細 */}
                                             <div>
                                                 <h4 className="text-xs font-bold text-[var(--text-muted)] mb-3">📝 支出明細</h4>
                                                 <div className="space-y-2 max-h-64 overflow-y-auto pr-2 pb-2">
@@ -507,12 +552,46 @@
                 );
             };
 
-            // 頁籤 4: 願望池
+            // 頁籤 5: 願望池
             const renderFutureView = () => {
+                const customGoals = data.customGoals || [];
                 return (
                     <div className="space-y-8 pt-4 pb-28 fade-in relative">
-                        <h2 className="text-2xl font-black px-2">未來與願望</h2>
+                        <h2 className="text-2xl font-black px-2">儲蓄與願望</h2>
                         
+                        {/* 自訂儲蓄目標 */}
+                        <div className="bento-card border border-green-200 bg-[#F2Fbf5]">
+                            <div className="flex justify-between items-center mb-4">
+                                <h3 className="font-black text-lg flex items-center text-green-900"><span className="text-2xl mr-2">🎯</span> 夢想金庫</h3>
+                                <button onClick={() => {
+                                    setEditGoalName(''); setEditGoalTarget(''); setEditGoalCurrent(''); setEditingGoalId(null); setActionSheet('editGoal');
+                                }} className="text-xs bg-green-100 text-green-800 px-3 py-1.5 rounded-xl font-black">+ 新增目標</button>
+                            </div>
+                            
+                            <div className="space-y-4">
+                                {customGoals.length === 0 && <p className="text-sm text-center text-green-700/50 font-bold py-6">目前沒有儲蓄目標喔</p>}
+                                {customGoals.map(goal => {
+                                    const percent = Math.min(100, Math.floor((goal.current / goal.target) * 100)) || 0;
+                                    return (
+                                        <div key={goal.id} className="bg-white p-4 rounded-3xl shadow-sm border border-green-100 relative overflow-hidden">
+                                            <button onClick={() => {
+                                                setEditGoalName(goal.name); setEditGoalTarget(goal.target); setEditGoalCurrent(goal.current); setEditingGoalId(goal.id); setActionSheet('editGoal');
+                                            }} className="absolute top-3 right-3 text-[10px] font-bold bg-gray-100 text-gray-500 px-2 py-1 rounded-lg z-10">⚙️</button>
+                                            
+                                            <div className="relative z-10">
+                                                <h4 className="font-black text-lg text-[var(--text-dark)]">{goal.name}</h4>
+                                                <div className="flex justify-between items-end mt-2 mb-2">
+                                                    <span className="text-xs font-bold text-[var(--text-muted)]">已存 ${goal.current.toLocaleString()} / ${goal.target.toLocaleString()}</span>
+                                                    <span className="font-black text-xl text-[var(--green-deep)]">{percent}%</span>
+                                                </div>
+                                                <div className="progress-track"><div className="progress-fill" style={{width: `${percent}%`}}></div></div>
+                                            </div>
+                                        </div>
+                                    )
+                                })}
+                            </div>
+                        </div>
+
                         {/* 想要不等於需要 */}
                         <div>
                             <div className="flex justify-between items-center mb-4 px-2">
@@ -530,7 +609,6 @@
                                                 <div><p className="font-black text-[var(--text-dark)] text-lg">{wish.name}</p></div>
                                                 <span className="font-black text-xl text-[var(--text-dark)]">${wish.cost}</span>
                                             </div>
-                                            
                                             <div className="mt-4 relative z-10">
                                                 {wish.frozen ? (
                                                     <button onClick={() => handleDefrost(wish.id)} className="w-full bg-white/80 backdrop-blur text-[var(--text-dark)] text-xs font-black py-3 rounded-xl shadow-sm border border-gray-200">
@@ -638,27 +716,31 @@
                     
                     {/* 內容區 */}
                     <main className="max-w-md mx-auto pb-24">
-                        {activeTab === 'home' && renderHomeView()}
+                        {activeTab === 'home' && render365View()}
+                        {activeTab === 'bills' && renderBillsView()}
                         {activeTab === 'expense' && renderExpenseView()}
                         {activeTab === 'stats' && renderStatsView()}
                         {activeTab === 'future' && renderFutureView()}
                     </main>
 
-                    {/* 底部導覽列 */}
+                    {/* 底部導覽列 (5 個項目) */}
                     <div className="fixed bottom-0 w-full z-40">
                         <nav className="bottom-nav pb-safe bg-white/95 backdrop-blur-md">
-                            <div className="max-w-md mx-auto flex justify-around items-center px-2 py-3">
-                                <button onClick={() => setActiveTab('home')} className={`flex flex-col items-center w-[20%] transition-transform ${activeTab==='home'?'scale-110 text-[var(--text-dark)]':'text-[var(--text-muted)] opacity-60'}`}>
-                                    <span className="text-2xl mb-1">🐷</span><span className="text-[10px] font-black">首頁</span>
+                            <div className="max-w-md mx-auto flex justify-between items-center px-1 py-3">
+                                <button onClick={() => setActiveTab('home')} className={`flex flex-col items-center flex-1 transition-transform ${activeTab==='home'?'scale-110 text-[var(--text-dark)]':'text-[var(--text-muted)] opacity-60'}`}>
+                                    <span className="text-2xl mb-1">🐷</span><span className="text-[10px] font-black tracking-tighter">365存錢</span>
                                 </button>
-                                <button onClick={() => setActiveTab('expense')} className={`flex flex-col items-center w-[20%] transition-transform ${activeTab==='expense'?'scale-110 text-[var(--text-dark)]':'text-[var(--text-muted)] opacity-60'}`}>
-                                    <span className="text-2xl mb-1">💸</span><span className="text-[10px] font-black">每日花費</span>
+                                <button onClick={() => setActiveTab('bills')} className={`flex flex-col items-center flex-1 transition-transform ${activeTab==='bills'?'scale-110 text-[var(--text-dark)]':'text-[var(--text-muted)] opacity-60'}`}>
+                                    <span className="text-2xl mb-1">📡</span><span className="text-[10px] font-black tracking-tighter">固定支出</span>
                                 </button>
-                                <button onClick={() => setActiveTab('stats')} className={`flex flex-col items-center w-[20%] transition-transform ${activeTab==='stats'?'scale-110 text-[var(--text-dark)]':'text-[var(--text-muted)] opacity-60'}`}>
-                                    <span className="text-2xl mb-1">📈</span><span className="text-[10px] font-black">支出統計</span>
+                                <button onClick={() => setActiveTab('expense')} className={`flex flex-col items-center flex-1 transition-transform ${activeTab==='expense'?'scale-110 text-[var(--text-dark)]':'text-[var(--text-muted)] opacity-60'}`}>
+                                    <span className="text-2xl mb-1">💸</span><span className="text-[10px] font-black tracking-tighter">每日花費</span>
                                 </button>
-                                <button onClick={() => setActiveTab('future')} className={`flex flex-col items-center w-[20%] transition-transform ${activeTab==='future'?'scale-110 text-[var(--text-dark)]':'text-[var(--text-muted)] opacity-60'}`}>
-                                    <span className="text-2xl mb-1">🎯</span><span className="text-[10px] font-black">儲蓄願望</span>
+                                <button onClick={() => setActiveTab('stats')} className={`flex flex-col items-center flex-1 transition-transform ${activeTab==='stats'?'scale-110 text-[var(--text-dark)]':'text-[var(--text-muted)] opacity-60'}`}>
+                                    <span className="text-2xl mb-1">📈</span><span className="text-[10px] font-black tracking-tighter">支出統計</span>
+                                </button>
+                                <button onClick={() => setActiveTab('future')} className={`flex flex-col items-center flex-1 transition-transform ${activeTab==='future'?'scale-110 text-[var(--text-dark)]':'text-[var(--text-muted)] opacity-60'}`}>
+                                    <span className="text-2xl mb-1">💌</span><span className="text-[10px] font-black tracking-tighter">儲蓄願望</span>
                                 </button>
                             </div>
                         </nav>

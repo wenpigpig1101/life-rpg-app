@@ -6,9 +6,11 @@
     <title>豬豬的生活簡報</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
-    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    
+    <!-- ★ 終極修復：更換為在台灣有實體節點的 jsDelivr 伺服器，解決白屏與阻擋問題 ★ -->
+    <script src="https://cdn.jsdelivr.net/npm/react@18.2.0/umd/react.production.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/react-dom@18.2.0/umd/react-dom.production.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@babel/standalone@7.23.6/babel.min.js"></script>
 
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700;900&display=swap');
@@ -72,13 +74,32 @@
         .cell-unsaved { background-color: #F4F5F3; color: var(--text-muted); border: 1px solid #E8EBE9; }
         .cell-unsaved:active { transform: scale(0.9); }
     </style>
+
+    <!-- ★ 防卡死自救機制：如果 6 秒還沒載入成功，顯示急救按鈕 ★ -->
+    <script>
+        window.addEventListener('load', function() {
+            setTimeout(function() {
+                var root = document.getElementById('root');
+                if (root && root.innerHTML.indexOf('連線載入中') !== -1) {
+                    root.innerHTML = `
+                        <div style="padding: 40px 20px; text-align: center; color: #8A9A90;">
+                            <div style="font-size: 40px; margin-bottom: 20px;">⚠️</div>
+                            <h3 style="font-weight: 900; color: #D98C8C; font-size: 20px;">網路下載失敗</h3>
+                            <p style="font-size: 14px; margin-top: 10px; font-weight: bold; margin-bottom: 30px;">您的網路似乎阻擋了核心套件載入。</p>
+                            <button onclick="localStorage.clear(); sessionStorage.clear(); window.location.reload(true);" style="background-color: #D98C8C; color: white; padding: 15px 30px; border-radius: 15px; font-weight: 900; border: none; font-size: 16px; width: 100%; box-shadow: 0 4px 10px rgba(217,140,140,0.3);">強制清除快取並重試</button>
+                        </div>
+                    `;
+                }
+            }, 6000);
+        });
+    </script>
 </head>
 <body>
     <div id="root">
         <div style="padding: 40px 20px; text-align: center; color: #8A9A90;">
             <div style="font-size: 40px; margin-bottom: 20px; animation: pulse 1.5s infinite;">🐷</div>
             <h3 style="font-weight: 900;">連線載入中...</h3>
-            <p style="font-size: 12px; margin-top: 10px;">(若超過 5 秒，請重新整理網頁)</p>
+            <p style="font-size: 12px; margin-top: 10px;">(若超過 6 秒，將出現修復按鈕)</p>
         </div>
     </div>
 
@@ -169,7 +190,7 @@
         }
 
         function App() {
-            // 沿用 piggy_lifeos_stable_v7 以保留妳的舊資料
+            // 保留資料：一樣讀取 piggy_lifeos_stable_v7，確保無縫接軌
             const [data, setData] = useState(() => {
                 let parsed = DEFAULT_STATE;
                 try {
@@ -195,7 +216,9 @@
             });
 
             useEffect(() => {
-                localStorage.setItem('piggy_lifeos_stable_v7', JSON.stringify(data));
+                try {
+                    localStorage.setItem('piggy_lifeos_stable_v7', JSON.stringify(data));
+                } catch(e) {}
             }, [data]);
 
             const [activeTab, setActiveTab] = useState('home'); 
@@ -218,7 +241,7 @@
 
             const [newItemName, setNewItemName] = useState('');
             const [newItemCost, setNewItemCost] = useState('');
-            const [newItemNote, setNewItemNote] = useState(''); // 新增：備註的暫存狀態
+            const [newItemNote, setNewItemNote] = useState('');
             const [editingBillId, setEditingBillId] = useState(null); 
             
             const [showZine, setShowZine] = useState(false);
@@ -349,7 +372,6 @@
             };
             const handleDeleteGoal = (id) => { setData(p => ({ ...p, customGoals: (p.customGoals || []).filter(g => g.id !== id) })); };
 
-            // 支援儲存備註 note
             const handleSaveBill = () => {
                 if(!newItemName) return;
                 const amount = parseInt(newItemCost) || 0;
@@ -451,6 +473,7 @@
                 );
             };
 
+            // 頁籤 1: 365 存錢法
             const render365View = () => {
                 const savingsArr = data.savings365 || [];
                 const total365 = savingsArr.reduce((sum, val) => sum + val, 0);
@@ -490,6 +513,7 @@
                 );
             };
 
+            // 頁籤 2: 固定支出雷達
             const renderBillsView = () => {
                 const billsArr = data.bills || [];
                 return (
@@ -525,6 +549,7 @@
                 );
             };
 
+            // 頁籤 3: 每日花費
             const renderExpenseView = () => {
                 const goalsArr = data.customGoals || [];
                 const goal = goalsArr.length > 0 ? goalsArr[0] : { name: '存錢目標', target: 100000, current: 0 };
@@ -614,6 +639,7 @@
                 );
             };
 
+            // 頁籤 4: 支出統計
             const renderStatsView = () => {
                 return (
                     <div className="h-full flex flex-col pt-4 fade-in pb-32">
@@ -813,6 +839,7 @@
                         <div className="bottom-sheet p-6 animate-in slide-in-from-bottom-full">
                             <div className="w-12 h-1.5 bg-[#E8EBE9] rounded-full mx-auto mb-6"></div>
 
+                            {/* 編輯資產 */}
                             {actionSheet === 'editAssets' && (
                                 <div className="space-y-4 mb-4">
                                     <h3 className="font-black text-xl mb-2">💰 修改現有資產</h3>
@@ -821,6 +848,7 @@
                                 </div>
                             )}
 
+                            {/* 編輯儲蓄目標 */}
                             {actionSheet === 'editGoal' && (
                                 <div className="space-y-4 mb-4">
                                     <h3 className="font-black text-xl mb-2 text-green-800">{editingGoalId ? '🎯 編輯目標' : '🎯 新增目標'}</h3>
@@ -836,7 +864,6 @@
                                 </div>
                             )}
 
-                            {/* 固定雷達加入備註編輯 */}
                             {actionSheet === 'editBills' && (
                                 <div>
                                     <div className="flex justify-between items-center mb-4">
@@ -935,7 +962,6 @@
 
         const root = ReactDOM.createRoot(document.getElementById('root'));
         
-        // 防呆邊界保護，確保 React 崩潰時可以重置
         root.render(
             <ErrorBoundary>
                 <App />

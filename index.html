@@ -8,6 +8,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <!-- 使用最新版 babel 確保相容性 -->
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
     <style>
@@ -74,7 +75,11 @@
     </style>
 </head>
 <body>
-    <div id="root"></div>
+    <div id="root">
+        <div style="padding: 20px; text-align: center; color: #8A9A90; font-weight: bold; margin-top: 50px;">
+            如果一直停留在這個畫面，請嘗試清除瀏覽器快取，或使用無痕模式開啟！
+        </div>
+    </div>
 
     <script type="text/babel">
         const { useState, useEffect } = React;
@@ -94,7 +99,6 @@
             expenses: [], 
             savings365: [], 
             
-            // 豬豬專屬所有帳單
             bills: [
                 { id: 'b1', name: '房租', amount: 15000, paid: false },
                 { id: 'b2', name: '婷', amount: 30000, paid: false },
@@ -117,7 +121,6 @@
                 { id: 'b19', name: '貨車保養', amount: 0, paid: false }
             ],
             
-            // 豬豬專屬標籤
             quickTags: [
                 '成成的煙', '豬豬的煙', '成成的咖啡', '早餐', '午餐', '晚餐', '下午茶', '宵夜',
                 '奶粉', 'Bo弟奶粉', '尿布', 'Q尿布', 'Bo弟尿布', '保久乳', '羊奶', '乳酸菌、寶乖亞',
@@ -134,7 +137,6 @@
             ]
         };
 
-        // --- 豬豬專屬動態稱號系統 ---
         const getPiggyTitleInfo = (level) => {
             if (level >= 50) return { title: '豬豬大師', icon: '👑' };
             if (level >= 30) return { title: '豬豬領航員', icon: '💎' };
@@ -145,33 +147,35 @@
         };
 
         function App() {
-            // 極度防呆的讀取機制，換了新的存檔金鑰 piggy_lifeos_v5_safe 保證全新啟動
+            // 使用全新的儲存鑰匙 piggy_lifeos_stable_v6 確保完全乾淨的啟動
             const [data, setData] = useState(() => {
                 let parsed = DEFAULT_STATE;
                 try {
-                    const saved = localStorage.getItem('piggy_lifeos_v5_safe');
+                    const saved = localStorage.getItem('piggy_lifeos_stable_v6');
                     if (saved) {
                         const savedObj = JSON.parse(saved);
+                        // 防白屏：確保所有陣列與物件都存在
                         parsed = {
                             player: savedObj.player || DEFAULT_STATE.player,
-                            assets: savedObj.assets || 0,
-                            spent: savedObj.spent || 0,
-                            expenses: savedObj.expenses || [],
-                            savings365: savedObj.savings365 || [],
-                            bills: savedObj.bills || DEFAULT_STATE.bills,
-                            quickTags: savedObj.quickTags || DEFAULT_STATE.quickTags,
-                            customGoals: savedObj.customGoals || DEFAULT_STATE.customGoals,
-                            wishes: savedObj.wishes || []
+                            assets: typeof savedObj.assets === 'number' ? savedObj.assets : 0,
+                            spent: typeof savedObj.spent === 'number' ? savedObj.spent : 0,
+                            expenses: Array.isArray(savedObj.expenses) ? savedObj.expenses : [],
+                            savings365: Array.isArray(savedObj.savings365) ? savedObj.savings365 : [],
+                            bills: Array.isArray(savedObj.bills) ? savedObj.bills : DEFAULT_STATE.bills,
+                            quickTags: Array.isArray(savedObj.quickTags) ? savedObj.quickTags : DEFAULT_STATE.quickTags,
+                            // 目標必須要有值，否則容易當機
+                            customGoals: Array.isArray(savedObj.customGoals) && savedObj.customGoals.length > 0 ? savedObj.customGoals : DEFAULT_STATE.customGoals,
+                            wishes: Array.isArray(savedObj.wishes) ? savedObj.wishes : []
                         };
                     }
                 } catch(e) {
-                    console.error("讀取失敗，套用預設值", e);
+                    console.error("載入舊資料失敗", e);
                 }
                 return parsed;
             });
 
             useEffect(() => {
-                localStorage.setItem('piggy_lifeos_v5_safe', JSON.stringify(data));
+                localStorage.setItem('piggy_lifeos_stable_v6', JSON.stringify(data));
             }, [data]);
 
             const [activeTab, setActiveTab] = useState('home'); 
@@ -203,15 +207,16 @@
 
             const gainRewards = (exp) => {
                 setData(prev => {
-                    let newExp = (prev.player && prev.player.exp ? prev.player.exp : 0) + exp;
-                    let newLevel = (prev.player && prev.player.level ? prev.player.level : 1);
-                    const maxExp = (prev.player && prev.player.maxExp ? prev.player.maxExp : 100);
+                    const safePlayer = prev.player || { level: 1, exp: 0, maxExp: 100 };
+                    let newExp = safePlayer.exp + exp;
+                    let newLevel = safePlayer.level;
+                    const maxExp = safePlayer.maxExp || 100;
 
                     if (newExp >= maxExp) {
                         newExp -= maxExp; 
                         newLevel += 1;
-                        const { title, icon } = getPiggyTitleInfo(newLevel);
-                        setTimeout(() => showToast(`🎉 升級！成為 Lv.${newLevel} ${title} ${icon}`), 800);
+                        const titleInfo = getPiggyTitleInfo(newLevel);
+                        setTimeout(() => showToast(`🎉 升級！成為 Lv.${newLevel} ${titleInfo.title} ${titleInfo.icon}`), 800);
                     }
                     return { ...prev, player: { level: newLevel, exp: newExp, maxExp: maxExp } };
                 });
@@ -239,7 +244,10 @@
                 
                 setData(p => {
                     const d = new Date();
-                    const dateStr = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+                    const monthStr = d.getMonth() + 1 < 10 ? '0' + (d.getMonth() + 1) : (d.getMonth() + 1);
+                    const dayStr = d.getDate() < 10 ? '0' + d.getDate() : d.getDate();
+                    const dateStr = d.getFullYear() + '-' + monthStr + '-' + dayStr;
+                    
                     const newExpense = { id: Date.now(), title: expenseTitle, amount: amount, category: expenseCategory, date: dateStr };
                     const expensesArr = p.expenses || [];
                     return { ...p, assets: p.assets - amount, spent: p.spent + amount, expenses: [newExpense, ...expensesArr] };
@@ -337,7 +345,7 @@
                 });
 
                 setNewItemName(''); setNewItemCost(''); setEditingBillId(null); 
-                showToast(editingBillId ? '📡 已更新項目' : '📡 已新增項目');
+                showToast(editingBillId ? '📡 已更新固定支出' : '📡 已新增固定支出');
             };
 
             const handleAddWish = () => {
@@ -355,29 +363,45 @@
                 expenses.forEach(exp => {
                     if(!exp.date) return;
                     const d = new Date(exp.date);
-                    const yKey = `${d.getFullYear()}年`;
-                    const mKey = `${d.getFullYear()}年 ${String(d.getMonth()+1).padStart(2,'0')}月`;
+                    const yKey = d.getFullYear() + '年';
+                    
+                    const monthStr = d.getMonth() + 1 < 10 ? '0' + (d.getMonth() + 1) : (d.getMonth() + 1);
+                    const mKey = d.getFullYear() + '年 ' + monthStr + '月';
 
                     if(!monthlyData[mKey]) monthlyData[mKey] = { total: 0, items: [], categories: { food: 0, shopping: 0, transport: 0, life: 0, other: 0 } };
                     monthlyData[mKey].total += exp.amount;
                     monthlyData[mKey].items.push(exp);
-                    if (monthlyData[mKey].categories[exp.category] !== undefined) monthlyData[mKey].categories[exp.category] += exp.amount;
+                    
+                    if (monthlyData[mKey].categories[exp.category] !== undefined) {
+                        monthlyData[mKey].categories[exp.category] += exp.amount;
+                    }
 
                     yearlyData[yKey] = (yearlyData[yKey] || 0) + exp.amount;
                 });
 
-                return {
-                    monthly: Object.entries(monthlyData).sort((a,b) => b[0].localeCompare(a[0])).map(([month, md]) => {
-                        const catStats = Object.keys(md.categories).map(k => ({ key: k, amount: md.categories[k], percent: md.total === 0 ? 0 : Math.round((md.categories[k]/md.total)*100), label: CATEGORY_CONFIG[k] ? CATEGORY_CONFIG[k].label : '未分類', color: CATEGORY_CONFIG[k] ? CATEGORY_CONFIG[k].color : '#999' })).filter(c => c.amount > 0).sort((a,b) => b.amount - a.amount);
-                        return { month, total: md.total, items: md.items, categories: catStats };
-                    }),
-                    yearly: Object.entries(yearlyData).sort((a,b) => b[0].localeCompare(a[0]))
-                };
+                const sortedMonthly = Object.keys(monthlyData).sort().reverse().map(month => {
+                    const md = monthlyData[month];
+                    const catStats = Object.keys(md.categories).map(k => {
+                        const amount = md.categories[k];
+                        const percent = md.total === 0 ? 0 : Math.round((amount / md.total) * 100);
+                        const label = CATEGORY_CONFIG[k] ? CATEGORY_CONFIG[k].label : '未分類';
+                        const color = CATEGORY_CONFIG[k] ? CATEGORY_CONFIG[k].color : '#999';
+                        return { key: k, amount: amount, percent: percent, label: label, color: color };
+                    }).filter(c => c.amount > 0).sort((a,b) => b.amount - a.amount);
+                    
+                    return { month: month, total: md.total, items: md.items, categories: catStats };
+                });
+
+                const sortedYearly = Object.keys(yearlyData).sort().reverse().map(year => {
+                    return [year, yearlyData[year]];
+                });
+
+                return { monthly: sortedMonthly, yearly: sortedYearly };
             };
 
             const statsData = getStats();
             useEffect(() => {
-                if (activeTab === 'stats' && !expandedMonth && statsData.monthly.length > 0) {
+                if (activeTab === 'stats' && !expandedMonth && statsData.monthly && statsData.monthly.length > 0) {
                     setExpandedMonth(statsData.monthly[0].month);
                 }
             }, [activeTab]);
@@ -389,15 +413,17 @@
                 const safeExp = data.player && data.player.exp ? data.player.exp : 0;
                 const safeMaxExp = data.player && data.player.maxExp ? data.player.maxExp : 100;
                 
-                const { title, icon } = getPiggyTitleInfo(safeLevel);
+                const titleInfo = getPiggyTitleInfo(safeLevel);
+                const percent = safeMaxExp > 0 ? (safeExp / safeMaxExp) * 100 : 0;
+
                 return (
                     <div className="flex items-center space-x-3 px-2 mb-4">
                         <div className="w-14 h-14 bg-white rounded-3xl shadow-sm flex items-center justify-center text-3xl border border-[#E8EBE9]">🐷</div>
                         <div>
                             <h1 className="text-xl font-black text-[var(--text-dark)] flex items-center">
-                                Lv.{safeLevel} {title} <span className="ml-1 text-sm">{icon}</span>
+                                Lv.{safeLevel} {titleInfo.title} <span className="ml-1 text-sm">{titleInfo.icon}</span>
                             </h1>
-                            <div className="w-24 mt-1"><div className="exp-bar"><div className="exp-fill" style={{ width: `${(safeExp/safeMaxExp)*100}%` }}></div></div></div>
+                            <div className="w-24 mt-1"><div className="exp-bar"><div className="exp-fill" style={{ width: percent + '%' }}></div></div></div>
                         </div>
                     </div>
                 );
@@ -408,6 +434,10 @@
                 const savingsArr = data.savings365 || [];
                 const total365 = savingsArr.reduce((sum, val) => sum + val, 0);
                 const percent365 = Math.min(100, Math.floor((total365 / 66795) * 100));
+
+                // 產生 1~365 的陣列
+                const days = [];
+                for (let i = 1; i <= 365; i++) days.push(i);
 
                 return (
                     <div className="space-y-4 fade-in mt-2 pb-32 h-full flex flex-col">
@@ -420,13 +450,13 @@
                                 <span className="text-[10px] font-bold text-amber-700">目標：$66,795</span>
                                 <span className="font-black text-sm text-amber-700">{percent365}%</span>
                             </div>
-                            <div className="progress-track bg-amber-200/50"><div className="progress-fill bg-amber-500" style={{width: `${percent365}%`}}></div></div>
+                            <div className="progress-track bg-amber-200/50"><div className="progress-fill bg-amber-500" style={{width: percent365 + '%'}}></div></div>
                         </div>
 
                         <div className="bento-card flex-1 flex flex-col min-h-0 !p-4">
                             <h3 className="font-black text-sm text-[var(--text-muted)] mb-3 text-center">每天選一個數字存錢並打卡吧！</h3>
                             <div className="grid-365 overflow-y-auto pr-1 pb-4 flex-1">
-                                {Array.from({length: 365}, (_, i) => i + 1).map(day => {
+                                {days.map(day => {
                                     const isSaved = savingsArr.includes(day);
                                     return (
                                         <div key={day} onClick={() => toggleSaving365(day)} className={`cell-365 ${isSaved ? 'cell-saved' : 'cell-unsaved'}`}>
@@ -461,6 +491,7 @@
                                         <div className="flex justify-between items-start mb-2">
                                             <div>
                                                 <p className={`font-bold ${bill.paid ? 'text-gray-400 line-through' : 'text-[var(--text-dark)]'}`}>{bill.name}</p>
+                                                {bill.note && <p className="text-[10px] text-gray-400 mt-0.5">{bill.note}</p>}
                                             </div>
                                             <span className={`font-black text-lg ${bill.paid ? 'text-gray-400' : 'text-[var(--text-dark)]'}`}>${bill.amount.toLocaleString()}</span>
                                         </div>
@@ -479,10 +510,11 @@
             const renderExpenseView = () => {
                 const goalsArr = data.customGoals || [];
                 const goal = goalsArr.length > 0 ? goalsArr[0] : { name: '存錢目標', target: 100000, current: 0 };
-                const percent = Math.min(100, Math.floor((goal.current / goal.target) * 100)) || 0;
+                
+                // 防呆計算百分比
+                const percent = goal.target > 0 ? Math.min(100, Math.floor((goal.current / goal.target) * 100)) : 0;
+                
                 const quickTagsArr = data.quickTags || [];
-                const currentAssets = data.assets || 0;
-                const currentSpent = data.spent || 0;
                 
                 return (
                     <div className="space-y-4 fade-in mt-2 pb-32">
@@ -498,19 +530,19 @@
                             <div className="text-right relative z-10 pt-4">
                                 <span className="font-black text-2xl text-amber-600">{percent}%</span>
                             </div>
-                            <div className="absolute left-0 top-0 h-full bg-amber-200/40 transition-all duration-500" style={{ width: `${percent}%` }}></div>
+                            <div className="absolute left-0 top-0 h-full bg-amber-200/40 transition-all duration-500" style={{ width: percent + '%' }}></div>
                         </div>
 
                         <div className="grid grid-cols-2 gap-3">
                             <div className="bg-white p-5 rounded-3xl border border-gray-100 shadow-sm relative">
-                                <button onClick={() => { setEditAssetsAmount(currentAssets); setActionSheet('editAssets'); }} className="absolute top-3 right-3 text-xs bg-gray-100 text-gray-500 px-2 py-1 rounded-lg font-bold">⚙️</button>
+                                <button onClick={() => { setEditAssetsAmount(data.assets || 0); setActionSheet('editAssets'); }} className="absolute top-3 right-3 text-xs bg-gray-100 text-gray-500 px-2 py-1 rounded-lg font-bold">⚙️</button>
                                 <p className="text-xs font-bold text-[var(--text-muted)] mb-1">現有浮動資產</p>
-                                <p className="font-black text-2xl text-[var(--green-deep)]">${currentAssets.toLocaleString()}</p>
+                                <p className="font-black text-2xl text-[var(--green-deep)]">${(data.assets || 0).toLocaleString()}</p>
                             </div>
                             <div className="bg-white p-5 rounded-3xl border border-gray-100 shadow-sm relative">
                                 <button onClick={() => setData(p => ({...p, spent: 0}))} className="absolute top-3 right-3 text-xs bg-gray-100 text-red-400 px-2 py-1 rounded-lg font-bold">歸零</button>
                                 <p className="text-xs font-bold text-[var(--text-muted)] mb-1">本月累計支出</p>
-                                <p className="font-black text-2xl text-[var(--brown-dirt)]">${currentSpent.toLocaleString()}</p>
+                                <p className="font-black text-2xl text-[var(--brown-dirt)]">${(data.spent || 0).toLocaleString()}</p>
                             </div>
                         </div>
 
@@ -582,10 +614,10 @@
                                 <h3 className="font-bold text-amber-900 mb-4 flex items-center"><span className="text-2xl mr-2">📅</span> 年度總支出</h3>
                                 {statsData.yearly.length === 0 && <p className="text-sm text-amber-700/50 font-bold">目前沒有年度資料</p>}
                                 <div className="space-y-3">
-                                    {statsData.yearly.map(([year, amount]) => (
-                                        <div key={year} className="flex justify-between items-center bg-white p-4 rounded-2xl shadow-sm">
-                                            <span className="font-bold text-[var(--text-dark)]">{year}</span>
-                                            <span className="font-black text-xl text-[var(--brown-dirt)]">${amount.toLocaleString()}</span>
+                                    {statsData.yearly.map((yData) => (
+                                        <div key={yData[0]} className="flex justify-between items-center bg-white p-4 rounded-2xl shadow-sm">
+                                            <span className="font-bold text-[var(--text-dark)]">{yData[0]}</span>
+                                            <span className="font-black text-xl text-[var(--brown-dirt)]">${yData[1].toLocaleString()}</span>
                                         </div>
                                     ))}
                                 </div>
@@ -610,7 +642,7 @@
                                                 {stat.categories.map((cat, idx) => (
                                                     <div key={idx}>
                                                         <div className="flex justify-between text-xs font-bold mb-1.5"><span className="text-[var(--text-dark)]">{cat.label}</span><div className="text-right"><span className="text-gray-400 mr-2">{cat.percent}%</span><span>${cat.amount.toLocaleString()}</span></div></div>
-                                                        <div className="stat-bar"><div className="stat-fill" style={{ width: `${cat.percent}%`, backgroundColor: cat.color }}></div></div>
+                                                        <div className="stat-bar"><div className="stat-fill" style={{ width: cat.percent + '%', backgroundColor: cat.color }}></div></div>
                                                     </div>
                                                 ))}
                                             </div>
@@ -660,7 +692,8 @@
                             <div className="space-y-4">
                                 {goalsArr.length === 0 && <p className="text-sm text-center text-green-700/50 font-bold py-6">目前沒有儲蓄目標喔</p>}
                                 {goalsArr.map(goal => {
-                                    const percent = Math.min(100, Math.floor((goal.current / goal.target) * 100)) || 0;
+                                    // 防呆計算
+                                    const percent = goal.target > 0 ? Math.min(100, Math.floor((goal.current / goal.target) * 100)) : 0;
                                     return (
                                         <div key={goal.id} className="bg-white p-4 rounded-3xl shadow-sm border border-green-100 relative overflow-hidden">
                                             <button onClick={() => {
@@ -673,7 +706,7 @@
                                                     <span className="text-xs font-bold text-[var(--text-muted)]">已存 ${goal.current.toLocaleString()} / ${goal.target.toLocaleString()}</span>
                                                     <span className="font-black text-xl text-[var(--green-deep)]">{percent}%</span>
                                                 </div>
-                                                <div className="progress-track"><div className="progress-fill" style={{width: `${percent}%`}}></div></div>
+                                                <div className="progress-track"><div className="progress-fill" style={{width: percent + '%'}}></div></div>
                                             </div>
                                         </div>
                                     )

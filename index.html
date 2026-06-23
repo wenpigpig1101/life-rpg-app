@@ -6,26 +6,9 @@
     <title>豬豬的生活簡報</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
-    
-    <!-- ★ 關鍵修復：將 unpkg 替換為全球最穩定的 cdnjs (Cloudflare)，解決台灣網路白屏問題 ★ -->
-    <script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
-    <script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.6/babel.min.js"></script>
-
-    <script>
-        // 捕捉全域錯誤，避免白畫面
-        window.onerror = function(msg, url, lineNo, columnNo, error) {
-            document.getElementById('root').innerHTML = `
-                <div style="padding: 30px; text-align: center; color: #D98C8C;">
-                    <h2 style="font-size: 24px; font-weight: 900; margin-bottom: 10px;">⚠️ 系統載入異常</h2>
-                    <p style="font-size: 14px; font-weight: bold; margin-bottom: 20px;">可能是網路延遲或快取衝突。</p>
-                    <button onclick="localStorage.clear(); window.location.reload();" style="background: #D98C8C; color: white; padding: 15px 30px; border-radius: 15px; font-weight: 900; border: none;">點此清除快取並修復</button>
-                    <p style="font-size: 10px; margin-top: 20px; color: gray;">錯誤代碼: ${msg}</p>
-                </div>
-            `;
-            return false;
-        };
-    </script>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700;900&display=swap');
@@ -164,15 +147,12 @@
             return { title: '豬豬探索者', icon: '🌱' };
         };
 
-        // --- 防當機邊界元件 (Error Boundary) ---
         class ErrorBoundary extends React.Component {
             constructor(props) {
                 super(props);
                 this.state = { hasError: false, errorMsg: '' };
             }
-            static getDerivedStateFromError(error) {
-                return { hasError: true, errorMsg: error.toString() };
-            }
+            static getDerivedStateFromError(error) { return { hasError: true, errorMsg: error.toString() }; }
             render() {
                 if (this.state.hasError) {
                     return (
@@ -189,7 +169,7 @@
         }
 
         function App() {
-            // 使用全新的儲存鑰匙 piggy_lifeos_stable_v7 確保完全乾淨的啟動
+            // 沿用 piggy_lifeos_stable_v7 以保留妳的舊資料
             const [data, setData] = useState(() => {
                 let parsed = DEFAULT_STATE;
                 try {
@@ -238,6 +218,7 @@
 
             const [newItemName, setNewItemName] = useState('');
             const [newItemCost, setNewItemCost] = useState('');
+            const [newItemNote, setNewItemNote] = useState(''); // 新增：備註的暫存狀態
             const [editingBillId, setEditingBillId] = useState(null); 
             
             const [showZine, setShowZine] = useState(false);
@@ -284,7 +265,7 @@
                     const d = new Date();
                     const monthStr = d.getMonth() + 1 < 10 ? '0' + (d.getMonth() + 1) : (d.getMonth() + 1);
                     const dayStr = d.getDate() < 10 ? '0' + d.getDate() : d.getDate();
-                    const dateStr = d.getFullYear() + '/' + monthStr + '/' + dayStr; // 使用斜線避免 Safari 日期解析 Bug
+                    const dateStr = d.getFullYear() + '/' + monthStr + '/' + dayStr; 
                     
                     const newExpense = { id: Date.now(), title: expenseTitle, amount: amount, category: expenseCategory, date: dateStr };
                     const expensesArr = p.expenses || [];
@@ -368,6 +349,7 @@
             };
             const handleDeleteGoal = (id) => { setData(p => ({ ...p, customGoals: (p.customGoals || []).filter(g => g.id !== id) })); };
 
+            // 支援儲存備註 note
             const handleSaveBill = () => {
                 if(!newItemName) return;
                 const amount = parseInt(newItemCost) || 0;
@@ -375,14 +357,14 @@
                 setData(p => {
                     const billsArr = p.bills || [];
                     if (editingBillId) {
-                        return { ...p, bills: billsArr.map(b => b.id === editingBillId ? { ...b, name: newItemName, amount: amount } : b) };
+                        return { ...p, bills: billsArr.map(b => b.id === editingBillId ? { ...b, name: newItemName, amount: amount, note: newItemNote } : b) };
                     } else {
-                        const newBill = { id: Date.now().toString(), name: newItemName, amount: amount, paid: false };
+                        const newBill = { id: Date.now().toString(), name: newItemName, amount: amount, note: newItemNote, paid: false };
                         return { ...p, bills: [...billsArr, newBill] };
                     }
                 });
 
-                setNewItemName(''); setNewItemCost(''); setEditingBillId(null); 
+                setNewItemName(''); setNewItemCost(''); setNewItemNote(''); setEditingBillId(null); 
                 showToast(editingBillId ? '📡 已更新固定支出' : '📡 已新增固定支出');
             };
 
@@ -400,7 +382,6 @@
 
                 expenses.forEach(exp => {
                     if(!exp.date) return;
-                    // 使用相容性高的解析方式
                     const dateParts = exp.date.split(/[/-]/);
                     if (dateParts.length < 3) return;
                     const y = dateParts[0];
@@ -470,7 +451,6 @@
                 );
             };
 
-            // 頁籤 1: 365 存錢法
             const render365View = () => {
                 const savingsArr = data.savings365 || [];
                 const total365 = savingsArr.reduce((sum, val) => sum + val, 0);
@@ -510,7 +490,6 @@
                 );
             };
 
-            // 頁籤 2: 固定支出雷達
             const renderBillsView = () => {
                 const billsArr = data.bills || [];
                 return (
@@ -520,7 +499,7 @@
                         <div className="bento-card border border-amber-200 bg-[#FFFCF5]">
                             <div className="flex justify-between items-center mb-4">
                                 <h3 className="font-black text-lg flex items-center text-amber-900"><span className="text-2xl mr-2">📡</span> 固定支出雷達</h3>
-                                <button onClick={() => { setEditingBillId(null); setNewItemName(''); setNewItemCost(''); setActionSheet('editBills'); }} className="text-xs bg-amber-100 text-amber-800 px-3 py-1.5 rounded-xl font-black">⚙️ 編輯項目</button>
+                                <button onClick={() => { setEditingBillId(null); setNewItemName(''); setNewItemCost(''); setNewItemNote(''); setActionSheet('editBills'); }} className="text-xs bg-amber-100 text-amber-800 px-3 py-1.5 rounded-xl font-black">⚙️ 編輯項目</button>
                             </div>
                             <p className="text-xs text-amber-700 font-bold mb-4 bg-amber-100/50 p-2 rounded-lg">點擊打勾僅作「已付紀錄」，不會扣除資產喔！</p>
                             
@@ -546,7 +525,6 @@
                 );
             };
 
-            // 頁籤 3: 每日花費
             const renderExpenseView = () => {
                 const goalsArr = data.customGoals || [];
                 const goal = goalsArr.length > 0 ? goalsArr[0] : { name: '存錢目標', target: 100000, current: 0 };
@@ -636,7 +614,6 @@
                 );
             };
 
-            // 頁籤 4: 支出統計
             const renderStatsView = () => {
                 return (
                     <div className="h-full flex flex-col pt-4 fade-in pb-32">
@@ -710,7 +687,6 @@
                 );
             };
 
-            // 頁籤 5: 願望池
             const renderFutureView = () => {
                 const goalsArr = data.customGoals || [];
                 const wishesArr = data.wishes || [];
@@ -799,7 +775,6 @@
                 );
             };
 
-            // 月底雜誌 Modal
             const renderZineModal = () => {
                 if (!showZine) return null;
                 return (
@@ -830,12 +805,11 @@
                 );
             };
 
-            // 編輯選單 Overlays
             const renderEditOverlays = () => {
                 if (!actionSheet) return null;
                 return (
                     <div className="fixed inset-0 z-50 flex flex-col justify-end bg-black/40 backdrop-blur-sm animate-in fade-in">
-                        <div className="flex-1" onClick={() => { setActionSheet(null); setEditingBillId(null); setNewItemName(''); setNewItemCost(''); }} ></div>
+                        <div className="flex-1" onClick={() => { setActionSheet(null); setEditingBillId(null); setNewItemName(''); setNewItemCost(''); setNewItemNote(''); }} ></div>
                         <div className="bottom-sheet p-6 animate-in slide-in-from-bottom-full">
                             <div className="w-12 h-1.5 bg-[#E8EBE9] rounded-full mx-auto mb-6"></div>
 
@@ -862,20 +836,22 @@
                                 </div>
                             )}
 
+                            {/* 固定雷達加入備註編輯 */}
                             {actionSheet === 'editBills' && (
                                 <div>
                                     <div className="flex justify-between items-center mb-4">
                                         <h3 className="font-black text-lg">⚙️ 編輯固定支出雷達</h3>
-                                        <button onClick={() => { setActionSheet(null); setEditingBillId(null); setNewItemName(''); setNewItemCost(''); }} className="text-sm font-bold text-[var(--text-muted)]">完成</button>
+                                        <button onClick={() => { setActionSheet(null); setEditingBillId(null); setNewItemName(''); setNewItemCost(''); setNewItemNote(''); }} className="text-sm font-bold text-[var(--text-muted)]">完成</button>
                                     </div>
                                     <div className="bg-[#F4F5F3] p-4 rounded-2xl mb-6 space-y-3">
                                         <p className="text-xs font-bold text-[var(--text-muted)]">{editingBillId ? '✎ 正在修改項目...' : '✨ 新增項目'}</p>
                                         <input type="text" value={newItemName} onChange={e=>setNewItemName(e.target.value)} placeholder="名稱 (例如: 網路費)" className="input-eco py-3 bg-white" />
                                         <input type="number" value={newItemCost} onChange={e=>setNewItemCost(e.target.value)} placeholder="金額 ($)" className="input-eco py-3 bg-white w-full" />
+                                        <input type="text" value={newItemNote} onChange={e=>setNewItemNote(e.target.value)} placeholder="備註 (例如: 每月20號，可不填)" className="input-eco py-3 bg-white w-full" />
                                         
                                         <div className="flex space-x-2 mt-2">
                                             {editingBillId && (
-                                                <button onClick={() => { setEditingBillId(null); setNewItemName(''); setNewItemCost(''); }} className="bg-gray-200 text-gray-600 font-bold py-3 px-4 rounded-xl active:scale-95 transition-transform">取消</button>
+                                                <button onClick={() => { setEditingBillId(null); setNewItemName(''); setNewItemCost(''); setNewItemNote(''); }} className="bg-gray-200 text-gray-600 font-bold py-3 px-4 rounded-xl active:scale-95 transition-transform">取消</button>
                                             )}
                                             <button onClick={handleSaveBill} className="flex-1 bg-[var(--text-dark)] text-white font-bold py-3 rounded-xl active:scale-95 transition-transform">
                                                 {editingBillId ? '儲存修改' : '新增帳單'}
@@ -885,9 +861,9 @@
                                     <div className="space-y-2 max-h-60 overflow-y-auto pb-4">
                                         {(data.bills || []).map((b) => (
                                             <div key={b.id} className="flex justify-between items-center bg-white border border-[#E8EBE9] p-3 rounded-xl">
-                                                <div className="flex flex-col flex-1 cursor-pointer" onClick={() => { setEditingBillId(b.id); setNewItemName(b.name); setNewItemCost(b.amount); }}>
+                                                <div className="flex flex-col flex-1 cursor-pointer" onClick={() => { setEditingBillId(b.id); setNewItemName(b.name); setNewItemCost(b.amount); setNewItemNote(b.note || ''); }}>
                                                     <span className="font-bold text-sm text-[var(--text-dark)]">{b.name} <span className="text-[10px] text-[var(--green-deep)] bg-green-100 px-1.5 py-0.5 rounded ml-2">✎ 編輯</span></span>
-                                                    <span className="text-[var(--text-muted)] text-xs">${b.amount.toLocaleString()}</span>
+                                                    <span className="text-[var(--text-muted)] text-xs">${b.amount.toLocaleString()}{b.note ? ` · ${b.note}` : ''}</span>
                                                 </div>
                                                 <button onClick={() => setData(p => ({...p, bills: (p.bills || []).filter(x=>x.id!==b.id)}))} className="ml-2 text-xs text-[var(--red-soft)] font-bold bg-[#FFE8E8] px-3 py-1.5 rounded-lg active:scale-95">移除</button>
                                             </div>

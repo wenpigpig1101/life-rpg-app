@@ -6,10 +6,26 @@
     <title>豬豬的生活簡報</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
-    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-    <!-- 使用最新版 babel 確保相容性 -->
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    
+    <!-- ★ 關鍵修復：將 unpkg 替換為全球最穩定的 cdnjs (Cloudflare)，解決台灣網路白屏問題 ★ -->
+    <script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+    <script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.6/babel.min.js"></script>
+
+    <script>
+        // 捕捉全域錯誤，避免白畫面
+        window.onerror = function(msg, url, lineNo, columnNo, error) {
+            document.getElementById('root').innerHTML = `
+                <div style="padding: 30px; text-align: center; color: #D98C8C;">
+                    <h2 style="font-size: 24px; font-weight: 900; margin-bottom: 10px;">⚠️ 系統載入異常</h2>
+                    <p style="font-size: 14px; font-weight: bold; margin-bottom: 20px;">可能是網路延遲或快取衝突。</p>
+                    <button onclick="localStorage.clear(); window.location.reload();" style="background: #D98C8C; color: white; padding: 15px 30px; border-radius: 15px; font-weight: 900; border: none;">點此清除快取並修復</button>
+                    <p style="font-size: 10px; margin-top: 20px; color: gray;">錯誤代碼: ${msg}</p>
+                </div>
+            `;
+            return false;
+        };
+    </script>
 
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700;900&display=swap');
@@ -76,8 +92,10 @@
 </head>
 <body>
     <div id="root">
-        <div style="padding: 20px; text-align: center; color: #8A9A90; font-weight: bold; margin-top: 50px;">
-            如果一直停留在這個畫面，請嘗試清除瀏覽器快取，或使用無痕模式開啟！
+        <div style="padding: 40px 20px; text-align: center; color: #8A9A90;">
+            <div style="font-size: 40px; margin-bottom: 20px; animation: pulse 1.5s infinite;">🐷</div>
+            <h3 style="font-weight: 900;">連線載入中...</h3>
+            <p style="font-size: 12px; margin-top: 10px;">(若超過 5 秒，請重新整理網頁)</p>
         </div>
     </div>
 
@@ -146,15 +164,38 @@
             return { title: '豬豬探索者', icon: '🌱' };
         };
 
+        // --- 防當機邊界元件 (Error Boundary) ---
+        class ErrorBoundary extends React.Component {
+            constructor(props) {
+                super(props);
+                this.state = { hasError: false, errorMsg: '' };
+            }
+            static getDerivedStateFromError(error) {
+                return { hasError: true, errorMsg: error.toString() };
+            }
+            render() {
+                if (this.state.hasError) {
+                    return (
+                        <div style={{ padding: '30px', textAlign: 'center' }}>
+                            <h2 style={{ color: '#D98C8C', fontWeight: '900' }}>⚠️ 畫面渲染失敗</h2>
+                            <p style={{ fontSize: '12px', margin: '15px 0' }}>可能是舊的暫存資料衝突導致。</p>
+                            <button onClick={() => { localStorage.clear(); window.location.reload(); }} style={{ background: '#D98C8C', color: 'white', padding: '10px 20px', borderRadius: '10px', fontWeight: 'bold' }}>點此清除異常快取</button>
+                            <p style={{ fontSize: '10px', color: 'gray', marginTop: '20px' }}>{this.state.errorMsg}</p>
+                        </div>
+                    );
+                }
+                return this.props.children;
+            }
+        }
+
         function App() {
-            // 使用全新的儲存鑰匙 piggy_lifeos_stable_v6 確保完全乾淨的啟動
+            // 使用全新的儲存鑰匙 piggy_lifeos_stable_v7 確保完全乾淨的啟動
             const [data, setData] = useState(() => {
                 let parsed = DEFAULT_STATE;
                 try {
-                    const saved = localStorage.getItem('piggy_lifeos_stable_v6');
+                    const saved = localStorage.getItem('piggy_lifeos_stable_v7');
                     if (saved) {
                         const savedObj = JSON.parse(saved);
-                        // 防白屏：確保所有陣列與物件都存在
                         parsed = {
                             player: savedObj.player || DEFAULT_STATE.player,
                             assets: typeof savedObj.assets === 'number' ? savedObj.assets : 0,
@@ -163,7 +204,6 @@
                             savings365: Array.isArray(savedObj.savings365) ? savedObj.savings365 : [],
                             bills: Array.isArray(savedObj.bills) ? savedObj.bills : DEFAULT_STATE.bills,
                             quickTags: Array.isArray(savedObj.quickTags) ? savedObj.quickTags : DEFAULT_STATE.quickTags,
-                            // 目標必須要有值，否則容易當機
                             customGoals: Array.isArray(savedObj.customGoals) && savedObj.customGoals.length > 0 ? savedObj.customGoals : DEFAULT_STATE.customGoals,
                             wishes: Array.isArray(savedObj.wishes) ? savedObj.wishes : []
                         };
@@ -175,7 +215,7 @@
             });
 
             useEffect(() => {
-                localStorage.setItem('piggy_lifeos_stable_v6', JSON.stringify(data));
+                localStorage.setItem('piggy_lifeos_stable_v7', JSON.stringify(data));
             }, [data]);
 
             const [activeTab, setActiveTab] = useState('home'); 
@@ -222,8 +262,6 @@
                 });
             };
 
-            // --- 核心操作 ---
-
             const toggleSaving365 = (dayAmount) => {
                 setData(p => {
                     const savingsArr = p.savings365 || [];
@@ -246,7 +284,7 @@
                     const d = new Date();
                     const monthStr = d.getMonth() + 1 < 10 ? '0' + (d.getMonth() + 1) : (d.getMonth() + 1);
                     const dayStr = d.getDate() < 10 ? '0' + d.getDate() : d.getDate();
-                    const dateStr = d.getFullYear() + '-' + monthStr + '-' + dayStr;
+                    const dateStr = d.getFullYear() + '/' + monthStr + '/' + dayStr; // 使用斜線避免 Safari 日期解析 Bug
                     
                     const newExpense = { id: Date.now(), title: expenseTitle, amount: amount, category: expenseCategory, date: dateStr };
                     const expensesArr = p.expenses || [];
@@ -362,11 +400,14 @@
 
                 expenses.forEach(exp => {
                     if(!exp.date) return;
-                    const d = new Date(exp.date);
-                    const yKey = d.getFullYear() + '年';
+                    // 使用相容性高的解析方式
+                    const dateParts = exp.date.split(/[/-]/);
+                    if (dateParts.length < 3) return;
+                    const y = dateParts[0];
+                    const m = dateParts[1];
                     
-                    const monthStr = d.getMonth() + 1 < 10 ? '0' + (d.getMonth() + 1) : (d.getMonth() + 1);
-                    const mKey = d.getFullYear() + '年 ' + monthStr + '月';
+                    const yKey = y + '年';
+                    const mKey = y + '年 ' + m + '月';
 
                     if(!monthlyData[mKey]) monthlyData[mKey] = { total: 0, items: [], categories: { food: 0, shopping: 0, transport: 0, life: 0, other: 0 } };
                     monthlyData[mKey].total += exp.amount;
@@ -435,7 +476,6 @@
                 const total365 = savingsArr.reduce((sum, val) => sum + val, 0);
                 const percent365 = Math.min(100, Math.floor((total365 / 66795) * 100));
 
-                // 產生 1~365 的陣列
                 const days = [];
                 for (let i = 1; i <= 365; i++) days.push(i);
 
@@ -511,9 +551,7 @@
                 const goalsArr = data.customGoals || [];
                 const goal = goalsArr.length > 0 ? goalsArr[0] : { name: '存錢目標', target: 100000, current: 0 };
                 
-                // 防呆計算百分比
                 const percent = goal.target > 0 ? Math.min(100, Math.floor((goal.current / goal.target) * 100)) : 0;
-                
                 const quickTagsArr = data.quickTags || [];
                 
                 return (
@@ -692,7 +730,6 @@
                             <div className="space-y-4">
                                 {goalsArr.length === 0 && <p className="text-sm text-center text-green-700/50 font-bold py-6">目前沒有儲蓄目標喔</p>}
                                 {goalsArr.map(goal => {
-                                    // 防呆計算
                                     const percent = goal.target > 0 ? Math.min(100, Math.floor((goal.current / goal.target) * 100)) : 0;
                                     return (
                                         <div key={goal.id} className="bg-white p-4 rounded-3xl shadow-sm border border-green-100 relative overflow-hidden">
@@ -762,6 +799,7 @@
                 );
             };
 
+            // 月底雜誌 Modal
             const renderZineModal = () => {
                 if (!showZine) return null;
                 return (
@@ -792,6 +830,7 @@
                 );
             };
 
+            // 編輯選單 Overlays
             const renderEditOverlays = () => {
                 if (!actionSheet) return null;
                 return (
@@ -919,7 +958,13 @@
         }
 
         const root = ReactDOM.createRoot(document.getElementById('root'));
-        root.render(<App />);
+        
+        // 防呆邊界保護，確保 React 崩潰時可以重置
+        root.render(
+            <ErrorBoundary>
+                <App />
+            </ErrorBoundary>
+        );
     </script>
 </body>
 </html>

@@ -4,10 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>豬豬的生活簡報</title>
+    
     <script src="https://cdn.tailwindcss.com"></script>
     <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700;900&display=swap');
         
@@ -17,7 +19,10 @@
             --yellow-warm: #EED7A1; --red-soft: #D98C8C;
         }
 
-        body { background-color: var(--bg-cream); color: var(--text-dark); font-family: 'Noto Sans TC', sans-serif; -webkit-tap-highlight-color: transparent; }
+        body {
+            background-color: var(--bg-cream); color: var(--text-dark);
+            font-family: 'Noto Sans TC', sans-serif; -webkit-tap-highlight-color: transparent; 
+        }
         ::-webkit-scrollbar { display: none; }
 
         .bento-card { background-color: var(--card-white); border-radius: 32px; box-shadow: 0 8px 24px rgba(74, 124, 89, 0.04), 0 2px 8px rgba(74, 124, 89, 0.02); border: 1px solid rgba(163, 184, 153, 0.15); padding: 24px; position: relative; overflow: hidden; margin-bottom: 16px; }
@@ -38,6 +43,17 @@
         .ice-card { border: 2px solid #E0F2F1; border-radius: 20px; transition: all 0.5s; background: white; box-shadow: inset 0 0 15px rgba(224,242,241,0.5); position: relative; overflow: hidden; }
         .frozen { background: linear-gradient(135deg, rgba(255,255,255,0.8), rgba(224,242,241,0.8)); border: 2px solid #B2DFDB; filter: grayscale(0.3) brightness(0.95); }
 
+        @keyframes flyIntoEnvelope {
+            0% { transform: translateY(0) scale(1); opacity: 1; filter: brightness(1); }
+            40% { transform: translateY(-100px) scale(1.2); filter: brightness(1.5); }
+            100% { transform: translateY(-300px) scale(0.2); opacity: 0; filter: brightness(2); }
+        }
+        .fly-anim { animation: flyIntoEnvelope 0.8s cubic-bezier(0.25, 1, 0.3, 1) forwards; pointer-events: none; z-index: 50; }
+
+        .zine-modal { position: fixed; inset: 0; z-index: 100; background: #FAF8F5; overflow-y: auto; animation: slideUp 0.5s cubic-bezier(0.16, 1, 0.3, 1); }
+        .zine-cover { background-image: linear-gradient(to bottom, rgba(0,0,0,0.1), rgba(0,0,0,0.7)), url('https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&q=80&w=800'); background-size: cover; background-position: center; }
+        @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+
         .bottom-nav { background-color: rgba(255,255,255,0.95); backdrop-filter: blur(10px); border-top-left-radius: 32px; border-top-right-radius: 32px; box-shadow: 0 -4px 24px rgba(44, 62, 53, 0.05); }
         .input-eco { background: #F4F5F3; border: 2px solid transparent; border-radius: 20px; padding: 16px 20px; width: 100%; color: var(--text-dark); font-weight: bold; outline: none; transition: 0.2s; }
         .input-eco:focus { border-color: var(--green-soft); background: #fff; box-shadow: 0 4px 12px rgba(163, 184, 153, 0.15); }
@@ -55,14 +71,6 @@
         .cell-saved { background-color: var(--green-deep); color: white; box-shadow: 0 4px 10px rgba(74, 124, 89, 0.3); transform: scale(1.05); }
         .cell-unsaved { background-color: #F4F5F3; color: var(--text-muted); border: 1px solid #E8EBE9; }
         .cell-unsaved:active { transform: scale(0.9); }
-        
-        /* 光束飛入動畫 */
-        @keyframes flyIntoEnvelope {
-            0% { transform: translateY(0) scale(1); opacity: 1; filter: brightness(1); }
-            40% { transform: translateY(-100px) scale(1.2); filter: brightness(1.5); }
-            100% { transform: translateY(-300px) scale(0.2); opacity: 0; filter: brightness(2); }
-        }
-        .fly-anim { animation: flyIntoEnvelope 0.8s cubic-bezier(0.25, 1, 0.3, 1) forwards; pointer-events: none; z-index: 50; }
     </style>
 </head>
 <body>
@@ -86,6 +94,7 @@
             expenses: [], 
             savings365: [], 
             
+            // 豬豬專屬所有帳單
             bills: [
                 { id: 'b1', name: '房租', amount: 15000, paid: false },
                 { id: 'b2', name: '婷', amount: 30000, paid: false },
@@ -108,6 +117,7 @@
                 { id: 'b19', name: '貨車保養', amount: 0, paid: false }
             ],
             
+            // 豬豬專屬標籤
             quickTags: [
                 '成成的煙', '豬豬的煙', '成成的咖啡', '早餐', '午餐', '晚餐', '下午茶', '宵夜',
                 '奶粉', 'Bo弟奶粉', '尿布', 'Q尿布', 'Bo弟尿布', '保久乳', '羊奶', '乳酸菌、寶乖亞',
@@ -115,7 +125,7 @@
             ],
             
             customGoals: [
-                { id: 1, name: '我要存一桶金', target: 1000000, current: 0 }
+                { id: 1, name: '買車頭期款', target: 500000, current: 0 }
             ],
             
             wishes: [
@@ -135,18 +145,33 @@
         };
 
         function App() {
+            // 極度防呆的讀取機制，換了新的存檔金鑰 piggy_lifeos_v5_safe 保證全新啟動
             const [data, setData] = useState(() => {
-                const saved = localStorage.getItem('piggy_life_data_v3');
                 let parsed = DEFAULT_STATE;
-                if (saved) {
-                    try { parsed = { ...DEFAULT_STATE, ...JSON.parse(saved) }; } catch(e) {}
+                try {
+                    const saved = localStorage.getItem('piggy_lifeos_v5_safe');
+                    if (saved) {
+                        const savedObj = JSON.parse(saved);
+                        parsed = {
+                            player: savedObj.player || DEFAULT_STATE.player,
+                            assets: savedObj.assets || 0,
+                            spent: savedObj.spent || 0,
+                            expenses: savedObj.expenses || [],
+                            savings365: savedObj.savings365 || [],
+                            bills: savedObj.bills || DEFAULT_STATE.bills,
+                            quickTags: savedObj.quickTags || DEFAULT_STATE.quickTags,
+                            customGoals: savedObj.customGoals || DEFAULT_STATE.customGoals,
+                            wishes: savedObj.wishes || []
+                        };
+                    }
+                } catch(e) {
+                    console.error("讀取失敗，套用預設值", e);
                 }
-                if (!parsed.savings365) parsed.savings365 = []; 
                 return parsed;
             });
 
             useEffect(() => {
-                localStorage.setItem('piggy_life_data_v3', JSON.stringify(data));
+                localStorage.setItem('piggy_lifeos_v5_safe', JSON.stringify(data));
             }, [data]);
 
             const [activeTab, setActiveTab] = useState('home'); 
@@ -169,22 +194,26 @@
 
             const [newItemName, setNewItemName] = useState('');
             const [newItemCost, setNewItemCost] = useState('');
-            const [editingBillId, setEditingBillId] = useState(null); // 新增：用來記錄當前正在編輯的帳單ID
+            const [editingBillId, setEditingBillId] = useState(null); 
             
+            const [showZine, setShowZine] = useState(false);
             const [animatingWishId, setAnimatingWishId] = useState(null);
 
             const showToast = (msg) => { setToastMsg(msg); setTimeout(() => setToastMsg(null), 3000); };
 
             const gainRewards = (exp) => {
                 setData(prev => {
-                    let newExp = prev.player.exp + exp;
-                    let newLevel = prev.player.level;
-                    if (newExp >= prev.player.maxExp) {
-                        newExp -= prev.player.maxExp; newLevel += 1;
+                    let newExp = (prev.player && prev.player.exp ? prev.player.exp : 0) + exp;
+                    let newLevel = (prev.player && prev.player.level ? prev.player.level : 1);
+                    const maxExp = (prev.player && prev.player.maxExp ? prev.player.maxExp : 100);
+
+                    if (newExp >= maxExp) {
+                        newExp -= maxExp; 
+                        newLevel += 1;
                         const { title, icon } = getPiggyTitleInfo(newLevel);
                         setTimeout(() => showToast(`🎉 升級！成為 Lv.${newLevel} ${title} ${icon}`), 800);
                     }
-                    return { ...prev, player: { ...prev.player, level: newLevel, exp: newExp } };
+                    return { ...prev, player: { level: newLevel, exp: newExp, maxExp: maxExp } };
                 });
             };
 
@@ -192,12 +221,14 @@
 
             const toggleSaving365 = (dayAmount) => {
                 setData(p => {
-                    const newSavings = p.savings365.includes(dayAmount)
-                        ? p.savings365.filter(a => a !== dayAmount)
-                        : [...p.savings365, dayAmount];
+                    const savingsArr = p.savings365 || [];
+                    const newSavings = savingsArr.includes(dayAmount)
+                        ? savingsArr.filter(a => a !== dayAmount)
+                        : [...savingsArr, dayAmount];
                     return { ...p, savings365: newSavings };
                 });
-                if (!data.savings365.includes(dayAmount)) {
+                const currentArr = data.savings365 || [];
+                if (!currentArr.includes(dayAmount)) {
                     gainRewards(5); showToast(`💰 成功存下 $${dayAmount}！`);
                 }
             };
@@ -210,7 +241,8 @@
                     const d = new Date();
                     const dateStr = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
                     const newExpense = { id: Date.now(), title: expenseTitle, amount: amount, category: expenseCategory, date: dateStr };
-                    return { ...p, assets: p.assets - amount, spent: p.spent + amount, expenses: [newExpense, ...(p.expenses || [])] };
+                    const expensesArr = p.expenses || [];
+                    return { ...p, assets: p.assets - amount, spent: p.spent + amount, expenses: [newExpense, ...expensesArr] };
                 });
                 
                 gainRewards(10); showToast(`💸 已紀錄：${expenseTitle} $${amount}`);
@@ -218,40 +250,51 @@
             };
 
             const handleDeleteExpense = (id, amount) => {
-                setData(p => ({ ...p, assets: p.assets + amount, spent: Math.max(0, p.spent - amount), expenses: p.expenses.filter(exp => exp.id !== id) }));
+                setData(p => {
+                    const expensesArr = p.expenses || [];
+                    return { ...p, assets: p.assets + amount, spent: Math.max(0, p.spent - amount), expenses: expensesArr.filter(exp => exp.id !== id) };
+                });
                 showToast('🗑️ 已刪除該筆紀錄，資產已自動加回');
             };
 
             const toggleBillStatus = (billId) => {
-                setData(p => ({
-                    ...p, bills: p.bills.map(b => {
-                        if (b.id === billId) {
-                            showToast(!b.paid ? `✅ 已標記支付：${b.name}` : `↩️ 已取消支付：${b.name}`);
-                            return { ...b, paid: !b.paid };
-                        }
-                        return b;
-                    })
-                }));
+                setData(p => {
+                    const billsArr = p.bills || [];
+                    return {
+                        ...p, bills: billsArr.map(b => {
+                            if (b.id === billId) {
+                                showToast(!b.paid ? `✅ 已標記支付：${b.name}` : `↩️ 已取消支付：${b.name}`);
+                                return { ...b, paid: !b.paid };
+                            }
+                            return b;
+                        })
+                    };
+                });
             };
 
             const handleDefrost = (wishId) => {
-                const wish = data.wishes.find(w => w.id === wishId);
+                const wishesArr = data.wishes || [];
+                const wish = wishesArr.find(w => w.id === wishId);
+                if (!wish) return;
+
                 if (wish.frozen) {
-                    setData(p => ({ ...p, wishes: p.wishes.map(w => w.id === wishId ? { ...w, frozen: false } : w) }));
+                    setData(p => ({ ...p, wishes: (p.wishes || []).map(w => w.id === wishId ? { ...w, frozen: false } : w) }));
                 } else {
                     setAnimatingWishId(wishId);
                     setTimeout(() => {
                         setData(p => {
-                            if (!p.customGoals || p.customGoals.length === 0) return { ...p, wishes: p.wishes.filter(w => w.id !== wishId) };
+                            const goalsArr = p.customGoals || [];
+                            const wishesArr2 = p.wishes || [];
+                            if (goalsArr.length === 0) return { ...p, wishes: wishesArr2.filter(w => w.id !== wishId) };
                             
-                            const firstGoal = p.customGoals[0];
+                            const firstGoal = goalsArr[0];
                             const newCurrent = firstGoal.current + wish.cost;
                             if (newCurrent >= firstGoal.target && firstGoal.current < firstGoal.target) {
                                 setTimeout(() => showToast(`🔓 恭喜！【${firstGoal.name}】達標了！`), 1000);
                             }
                             
-                            const newGoals = p.customGoals.map((g, idx) => idx === 0 ? { ...g, current: Math.min(newCurrent, g.target) } : g);
-                            return { ...p, customGoals: newGoals, wishes: p.wishes.filter(w => w.id !== wishId) };
+                            const newGoals = goalsArr.map((g, idx) => idx === 0 ? { ...g, current: Math.min(newCurrent, g.target) } : g);
+                            return { ...p, customGoals: newGoals, wishes: wishesArr2.filter(w => w.id !== wishId) };
                         });
                         setAnimatingWishId(null);
                         showToast(`✨ 克服衝動！$${wish.cost} 已注入存錢目標！`);
@@ -268,7 +311,7 @@
             const handleSaveGoal = () => {
                 if(!editGoalName) return;
                 setData(p => {
-                    const newGoals = [...(p.customGoals || [])];
+                    const newGoals = p.customGoals || [];
                     if (editingGoalId) {
                         return { ...p, customGoals: newGoals.map(g => g.id === editingGoalId ? { ...g, name: editGoalName, target: parseInt(editGoalTarget)||0, current: parseInt(editGoalCurrent)||0 } : g) };
                     } else {
@@ -277,35 +320,30 @@
                 });
                 showToast('🎯 目標已儲存'); setActionSheet(null);
             };
-            const handleDeleteGoal = (id) => { setData(p => ({ ...p, customGoals: p.customGoals.filter(g => g.id !== id) })); };
+            const handleDeleteGoal = (id) => { setData(p => ({ ...p, customGoals: (p.customGoals || []).filter(g => g.id !== id) })); };
 
-            // 修改：支援新增與編輯固定帳單
             const handleSaveBill = () => {
                 if(!newItemName) return;
                 const amount = parseInt(newItemCost) || 0;
 
                 setData(p => {
+                    const billsArr = p.bills || [];
                     if (editingBillId) {
-                        // 編輯既有帳單
-                        return {
-                            ...p,
-                            bills: p.bills.map(b => b.id === editingBillId ? { ...b, name: newItemName, amount: amount } : b)
-                        };
+                        return { ...p, bills: billsArr.map(b => b.id === editingBillId ? { ...b, name: newItemName, amount: amount } : b) };
                     } else {
-                        // 新增帳單
                         const newBill = { id: Date.now().toString(), name: newItemName, amount: amount, paid: false };
-                        return { ...p, bills: [...p.bills, newBill] };
+                        return { ...p, bills: [...billsArr, newBill] };
                     }
                 });
 
                 setNewItemName(''); setNewItemCost(''); setEditingBillId(null); 
-                showToast(editingBillId ? '📡 已更新固定支出' : '📡 已新增固定支出');
+                showToast(editingBillId ? '📡 已更新項目' : '📡 已新增項目');
             };
 
             const handleAddWish = () => {
                 if(!newItemName) return;
                 const newWish = { id: Date.now(), name: newItemName, cost: parseInt(newItemCost)||0, frozen: true, reason: '自訂願望' };
-                setData(p => ({ ...p, wishes: [newWish, ...p.wishes] }));
+                setData(p => ({ ...p, wishes: [newWish, ...(p.wishes || [])] }));
                 setNewItemName(''); setNewItemCost(''); showToast('❄️ 已停入慾望停車場');
             };
 
@@ -330,7 +368,7 @@
 
                 return {
                     monthly: Object.entries(monthlyData).sort((a,b) => b[0].localeCompare(a[0])).map(([month, md]) => {
-                        const catStats = Object.keys(md.categories).map(k => ({ key: k, amount: md.categories[k], percent: md.total === 0 ? 0 : Math.round((md.categories[k]/md.total)*100), ...CATEGORY_CONFIG[k] })).filter(c => c.amount > 0).sort((a,b) => b.amount - a.amount);
+                        const catStats = Object.keys(md.categories).map(k => ({ key: k, amount: md.categories[k], percent: md.total === 0 ? 0 : Math.round((md.categories[k]/md.total)*100), label: CATEGORY_CONFIG[k] ? CATEGORY_CONFIG[k].label : '未分類', color: CATEGORY_CONFIG[k] ? CATEGORY_CONFIG[k].color : '#999' })).filter(c => c.amount > 0).sort((a,b) => b.amount - a.amount);
                         return { month, total: md.total, items: md.items, categories: catStats };
                     }),
                     yearly: Object.entries(yearlyData).sort((a,b) => b[0].localeCompare(a[0]))
@@ -347,15 +385,19 @@
             // --- 畫面渲染 ---
 
             const renderHeader = () => {
-                const { title, icon } = getPiggyTitleInfo(data.player.level);
+                const safeLevel = data.player && data.player.level ? data.player.level : 1;
+                const safeExp = data.player && data.player.exp ? data.player.exp : 0;
+                const safeMaxExp = data.player && data.player.maxExp ? data.player.maxExp : 100;
+                
+                const { title, icon } = getPiggyTitleInfo(safeLevel);
                 return (
                     <div className="flex items-center space-x-3 px-2 mb-4">
                         <div className="w-14 h-14 bg-white rounded-3xl shadow-sm flex items-center justify-center text-3xl border border-[#E8EBE9]">🐷</div>
                         <div>
                             <h1 className="text-xl font-black text-[var(--text-dark)] flex items-center">
-                                Lv.{data.player.level} {title} <span className="ml-1 text-sm">{icon}</span>
+                                Lv.{safeLevel} {title} <span className="ml-1 text-sm">{icon}</span>
                             </h1>
-                            <div className="w-24 mt-1"><div className="exp-bar"><div className="exp-fill" style={{ width: `${(data.player.exp/data.player.maxExp)*100}%` }}></div></div></div>
+                            <div className="w-24 mt-1"><div className="exp-bar"><div className="exp-fill" style={{ width: `${(safeExp/safeMaxExp)*100}%` }}></div></div></div>
                         </div>
                     </div>
                 );
@@ -363,7 +405,8 @@
 
             // 頁籤 1: 365 存錢法
             const render365View = () => {
-                const total365 = data.savings365.reduce((sum, val) => sum + val, 0);
+                const savingsArr = data.savings365 || [];
+                const total365 = savingsArr.reduce((sum, val) => sum + val, 0);
                 const percent365 = Math.min(100, Math.floor((total365 / 66795) * 100));
 
                 return (
@@ -384,7 +427,7 @@
                             <h3 className="font-black text-sm text-[var(--text-muted)] mb-3 text-center">每天選一個數字存錢並打卡吧！</h3>
                             <div className="grid-365 overflow-y-auto pr-1 pb-4 flex-1">
                                 {Array.from({length: 365}, (_, i) => i + 1).map(day => {
-                                    const isSaved = data.savings365.includes(day);
+                                    const isSaved = savingsArr.includes(day);
                                     return (
                                         <div key={day} onClick={() => toggleSaving365(day)} className={`cell-365 ${isSaved ? 'cell-saved' : 'cell-unsaved'}`}>
                                             {day}
@@ -398,47 +441,54 @@
             };
 
             // 頁籤 2: 固定支出雷達
-            const renderBillsView = () => (
-                <div className="space-y-4 fade-in mt-2 pb-24">
-                    {renderHeader()}
+            const renderBillsView = () => {
+                const billsArr = data.bills || [];
+                return (
+                    <div className="space-y-4 fade-in mt-2 pb-24">
+                        {renderHeader()}
 
-                    <div className="bento-card border border-amber-200 bg-[#FFFCF5]">
-                        <div className="flex justify-between items-center mb-4">
-                            <h3 className="font-black text-lg flex items-center text-amber-900"><span className="text-2xl mr-2">📡</span> 固定支出雷達</h3>
-                            <button onClick={() => { setEditingBillId(null); setNewItemName(''); setNewItemCost(''); setActionSheet('editBills'); }} className="text-xs bg-amber-100 text-amber-800 px-3 py-1.5 rounded-xl font-black">⚙️ 編輯雷達</button>
-                        </div>
-                        <p className="text-xs text-amber-700 font-bold mb-4 bg-amber-100/50 p-2 rounded-lg">點擊打勾僅作「已付紀錄」，不會扣除資產喔！</p>
-                        
-                        <div className="space-y-3 max-h-[60vh] overflow-y-auto pr-2 pb-4">
-                            {data.bills.length === 0 && <p className="text-sm text-center text-[var(--text-muted)] font-bold py-8">目前沒有固定支出項目</p>}
-                            {data.bills.map((bill) => (
-                                <div key={bill.id} className={`bento-item shadow-sm border transition-all duration-300 !p-4 ${bill.paid ? 'bg-gray-50 border-gray-200 opacity-50' : 'bg-white border-[#EED7A1]'}`}>
-                                    <div className="flex justify-between items-start mb-2">
-                                        <div>
-                                            <p className={`font-bold ${bill.paid ? 'text-gray-400 line-through' : 'text-[var(--text-dark)]'}`}>{bill.name}</p>
+                        <div className="bento-card border border-amber-200 bg-[#FFFCF5]">
+                            <div className="flex justify-between items-center mb-4">
+                                <h3 className="font-black text-lg flex items-center text-amber-900"><span className="text-2xl mr-2">📡</span> 固定支出雷達</h3>
+                                <button onClick={() => { setEditingBillId(null); setNewItemName(''); setNewItemCost(''); setActionSheet('editBills'); }} className="text-xs bg-amber-100 text-amber-800 px-3 py-1.5 rounded-xl font-black">⚙️ 編輯項目</button>
+                            </div>
+                            <p className="text-xs text-amber-700 font-bold mb-4 bg-amber-100/50 p-2 rounded-lg">點擊打勾僅作「已付紀錄」，不會扣除資產喔！</p>
+                            
+                            <div className="space-y-3 max-h-[60vh] overflow-y-auto pr-2 pb-4">
+                                {billsArr.length === 0 && <p className="text-sm text-center text-[var(--text-muted)] font-bold py-8">目前沒有固定支出項目</p>}
+                                {billsArr.map((bill) => (
+                                    <div key={bill.id} className={`bento-item shadow-sm border transition-all duration-300 !p-4 ${bill.paid ? 'bg-gray-50 border-gray-200 opacity-50' : 'bg-white border-[#EED7A1]'}`}>
+                                        <div className="flex justify-between items-start mb-2">
+                                            <div>
+                                                <p className={`font-bold ${bill.paid ? 'text-gray-400 line-through' : 'text-[var(--text-dark)]'}`}>{bill.name}</p>
+                                            </div>
+                                            <span className={`font-black text-lg ${bill.paid ? 'text-gray-400' : 'text-[var(--text-dark)]'}`}>${bill.amount.toLocaleString()}</span>
                                         </div>
-                                        <span className={`font-black text-lg ${bill.paid ? 'text-gray-400' : 'text-[var(--text-dark)]'}`}>${bill.amount.toLocaleString()}</span>
+                                        <button onClick={() => toggleBillStatus(bill.id)} className={`w-full text-xs font-bold py-3 rounded-xl mt-2 active:scale-95 transition-transform ${bill.paid ? 'bg-gray-200 text-gray-500' : 'bg-[#F4F5F3] text-[var(--green-deep)]'}`}>
+                                            {bill.paid ? '↩️ 點擊取消支付' : '✅ 標記為已支付'}
+                                        </button>
                                     </div>
-                                    <button onClick={() => toggleBillStatus(bill.id)} className={`w-full text-xs font-bold py-3 rounded-xl mt-2 active:scale-95 transition-transform ${bill.paid ? 'bg-gray-200 text-gray-500' : 'bg-[#F4F5F3] text-[var(--green-deep)]'}`}>
-                                        {bill.paid ? '↩️ 點擊取消支付' : '✅ 標記為已支付'}
-                                    </button>
-                                </div>
-                            ))}
+                                ))}
+                            </div>
                         </div>
                     </div>
-                </div>
-            );
+                );
+            };
 
             // 頁籤 3: 每日花費
             const renderExpenseView = () => {
-                const goal = data.customGoals?.[0] || { name: '存錢目標', target: 100000, current: 0 };
+                const goalsArr = data.customGoals || [];
+                const goal = goalsArr.length > 0 ? goalsArr[0] : { name: '存錢目標', target: 100000, current: 0 };
                 const percent = Math.min(100, Math.floor((goal.current / goal.target) * 100)) || 0;
+                const quickTagsArr = data.quickTags || [];
+                const currentAssets = data.assets || 0;
+                const currentSpent = data.spent || 0;
                 
                 return (
                     <div className="space-y-4 fade-in mt-2 pb-32">
                         <div className="bg-amber-100 p-4 rounded-3xl border border-amber-200 flex items-center justify-between shadow-sm relative overflow-hidden">
                             <button onClick={() => {
-                                setEditGoalTarget(goal.target); setEditGoalCurrent(goal.current); setEditGoalName(goal.name); setEditingGoalId(goal.id); setActionSheet('editGoal');
+                                setEditGoalTarget(goal.target); setEditGoalCurrent(goal.current); setEditGoalName(goal.name); setEditingGoalId(goal.id || null); setActionSheet('editGoal');
                             }} className="absolute top-2 right-2 text-[10px] font-bold bg-amber-200 text-amber-800 px-2 py-1 rounded-lg z-10">⚙️ 編輯</button>
                             
                             <div className="relative z-10">
@@ -453,14 +503,14 @@
 
                         <div className="grid grid-cols-2 gap-3">
                             <div className="bg-white p-5 rounded-3xl border border-gray-100 shadow-sm relative">
-                                <button onClick={() => { setEditAssetsAmount(data.assets); setActionSheet('editAssets'); }} className="absolute top-3 right-3 text-xs bg-gray-100 text-gray-500 px-2 py-1 rounded-lg font-bold">⚙️</button>
+                                <button onClick={() => { setEditAssetsAmount(currentAssets); setActionSheet('editAssets'); }} className="absolute top-3 right-3 text-xs bg-gray-100 text-gray-500 px-2 py-1 rounded-lg font-bold">⚙️</button>
                                 <p className="text-xs font-bold text-[var(--text-muted)] mb-1">現有浮動資產</p>
-                                <p className="font-black text-2xl text-[var(--green-deep)]">${data.assets.toLocaleString()}</p>
+                                <p className="font-black text-2xl text-[var(--green-deep)]">${currentAssets.toLocaleString()}</p>
                             </div>
                             <div className="bg-white p-5 rounded-3xl border border-gray-100 shadow-sm relative">
                                 <button onClick={() => setData(p => ({...p, spent: 0}))} className="absolute top-3 right-3 text-xs bg-gray-100 text-red-400 px-2 py-1 rounded-lg font-bold">歸零</button>
                                 <p className="text-xs font-bold text-[var(--text-muted)] mb-1">本月累計支出</p>
-                                <p className="font-black text-2xl text-[var(--brown-dirt)]">${data.spent.toLocaleString()}</p>
+                                <p className="font-black text-2xl text-[var(--brown-dirt)]">${currentSpent.toLocaleString()}</p>
                             </div>
                         </div>
 
@@ -476,11 +526,11 @@
                                 <div className="bg-gray-50 p-4 rounded-2xl mb-4 border border-gray-200">
                                     <div className="flex space-x-2 mb-3">
                                         <input type="text" value={newTag} onChange={e=>setNewTag(e.target.value)} placeholder="自訂新標籤..." className="flex-1 px-3 py-2 rounded-xl border border-gray-200 text-sm font-bold outline-none" />
-                                        <button onClick={() => { if(newTag){ setData(p=>({...p, quickTags:[newTag,...p.quickTags]})); setNewTag(''); showToast('🏷️ 已新增');} }} className="bg-[var(--text-dark)] text-white px-4 rounded-xl font-bold text-sm">新增</button>
+                                        <button onClick={() => { if(newTag){ setData(p=>({...p, quickTags:[newTag,...(p.quickTags||[])]})); setNewTag(''); showToast('🏷️ 已新增');} }} className="bg-[var(--text-dark)] text-white px-4 rounded-xl font-bold text-sm">新增</button>
                                     </div>
                                     <div className="flex flex-wrap gap-2">
-                                        {data.quickTags.map((tag, i) => (
-                                            <span key={i} onClick={() => setData(p => ({...p, quickTags: p.quickTags.filter(t => t!==tag)}))} className="px-3 py-1 bg-red-100 text-red-700 rounded-lg text-xs font-bold cursor-pointer">
+                                        {quickTagsArr.map((tag, i) => (
+                                            <span key={i} onClick={() => setData(p => ({...p, quickTags: (p.quickTags||[]).filter(t => t!==tag)}))} className="px-3 py-1 bg-red-100 text-red-700 rounded-lg text-xs font-bold cursor-pointer">
                                                 {tag} ✕
                                             </span>
                                         ))}
@@ -490,7 +540,7 @@
                                 <div className="bg-[#F9FAF8] p-4 rounded-2xl border border-[#E8EBE9] mb-4">
                                     <p className="text-xs font-bold text-[var(--text-muted)] mb-3">點選標籤帶入名稱：</p>
                                     <div className="flex flex-wrap gap-2 max-h-48 overflow-y-auto pb-2">
-                                        {data.quickTags.map((tag, i) => (
+                                        {quickTagsArr.map((tag, i) => (
                                             <button key={i} onClick={() => setExpenseTitle(tag)} className={`tag-pill ${expenseTitle === tag ? 'selected' : 'bg-white border-[#E8EBE9]'}`}>
                                                 {tag}
                                             </button>
@@ -520,7 +570,12 @@
             const renderStatsView = () => {
                 return (
                     <div className="h-full flex flex-col pt-4 fade-in pb-32">
-                        <h2 className="text-2xl font-black mb-6 px-2">歷史支出統計</h2>
+                        <div className="flex justify-between items-center mb-6 px-2">
+                            <h2 className="text-2xl font-black">歷史支出統計</h2>
+                            <button onClick={() => setShowZine(true)} className="bg-[var(--text-dark)] text-white text-xs font-bold px-4 py-2 rounded-xl shadow-md active:scale-95 transition-transform">
+                                ✨ 月底雜誌
+                            </button>
+                        </div>
                         
                         <div className="space-y-4">
                             <div className="bento-card bg-amber-50 border border-amber-200">
@@ -566,7 +621,7 @@
                                                         <div key={item.id} className="flex justify-between items-center bg-[#F4F5F3] p-3 rounded-xl border border-gray-100">
                                                             <div className="flex flex-col">
                                                                 <span className="font-bold text-sm text-[var(--text-dark)]">{item.title}</span>
-                                                                <span className="text-[10px] text-gray-400 mt-0.5">{item.date} · {CATEGORY_CONFIG[item.category]?.label || '未分類'}</span>
+                                                                <span className="text-[10px] text-gray-400 mt-0.5">{item.date} · {CATEGORY_CONFIG[item.category] ? CATEGORY_CONFIG[item.category].label : '未分類'}</span>
                                                             </div>
                                                             <div className="flex items-center">
                                                                 <span className="font-black text-sm text-[var(--text-dark)]">${item.amount.toLocaleString()}</span>
@@ -587,7 +642,9 @@
 
             // 頁籤 5: 願望池
             const renderFutureView = () => {
-                const customGoals = data.customGoals || [];
+                const goalsArr = data.customGoals || [];
+                const wishesArr = data.wishes || [];
+                
                 return (
                     <div className="space-y-8 pt-4 pb-28 fade-in relative">
                         <h2 className="text-2xl font-black px-2">儲蓄與願望</h2>
@@ -601,8 +658,8 @@
                             </div>
                             
                             <div className="space-y-4">
-                                {customGoals.length === 0 && <p className="text-sm text-center text-green-700/50 font-bold py-6">目前沒有儲蓄目標喔</p>}
-                                {customGoals.map(goal => {
+                                {goalsArr.length === 0 && <p className="text-sm text-center text-green-700/50 font-bold py-6">目前沒有儲蓄目標喔</p>}
+                                {goalsArr.map(goal => {
                                     const percent = Math.min(100, Math.floor((goal.current / goal.target) * 100)) || 0;
                                     return (
                                         <div key={goal.id} className="bg-white p-4 rounded-3xl shadow-sm border border-green-100 relative overflow-hidden">
@@ -633,7 +690,7 @@
                                 </div>
                             </div>
                             <div className="space-y-4">
-                                {data.wishes.map(wish => (
+                                {wishesArr.map(wish => (
                                     <div key={wish.id} className="relative">
                                         {animatingWishId === wish.id && (
                                             <div className="absolute inset-0 bg-white rounded-2xl shadow-xl flex items-center justify-center fly-anim">
@@ -665,14 +722,43 @@
                                         </div>
                                     </div>
                                 ))}
-                                {data.wishes.length === 0 && <p className="text-xs text-center text-gray-400 py-8 font-bold">目前心如止水，沒有想買的東西 🧘</p>}
+                                {wishesArr.length === 0 && <p className="text-xs text-center text-gray-400 py-8 font-bold">目前心如止水，沒有想買的東西 🧘</p>}
                             </div>
                         </div>
                     </div>
                 );
             };
 
-            // 編輯選單 Overlays
+            const renderZineModal = () => {
+                if (!showZine) return null;
+                return (
+                    <div className="zine-modal flex flex-col z-[100]">
+                        <div className="zine-cover h-[60vh] relative flex flex-col justify-end p-8 text-white">
+                            <button onClick={() => setShowZine(false)} className="absolute top-10 right-6 w-10 h-10 bg-black/40 backdrop-blur-md rounded-full flex items-center justify-center font-black">X</button>
+                            <p className="text-sm font-bold tracking-widest mb-2 opacity-80">MONTHLY ZINE . PIGGY</p>
+                            <h1 className="text-5xl font-black leading-tight mb-4">本月<br/>生活與財務<br/>總結</h1>
+                        </div>
+                        <div className="p-8 space-y-8 bg-[#FAF8F5] -mt-10 rounded-t-[40px] relative z-10 flex-1">
+                            <div>
+                                <h3 className="text-xl font-black mb-3">情緒與消費</h3>
+                                <p className="text-sm leading-loose text-gray-600 font-bold">
+                                    這個月你成功在「想要不等於需要」煞車了，省下了資金！<br/><br/>
+                                    這些錢已經為你的【夢想金庫】注入了能量。你做得非常棒，豬豬。
+                                </p>
+                            </div>
+                            <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100">
+                                <p className="text-sm font-black text-center italic text-[var(--text-dark)] leading-relaxed">
+                                    「果斷捨棄不再需要的衝動，就是對未來自己最大的慷慨。」
+                                </p>
+                            </div>
+                            <button onClick={() => {alert('已匯出精美長圖！'); setShowZine(false);}} className="w-full bg-[var(--text-dark)] text-white font-black py-4 rounded-2xl shadow-lg active:scale-95 transition-transform mb-8">
+                                📥 導出雜誌分享
+                            </button>
+                        </div>
+                    </div>
+                );
+            };
+
             const renderEditOverlays = () => {
                 if (!actionSheet) return null;
                 return (
@@ -681,7 +767,6 @@
                         <div className="bottom-sheet p-6 animate-in slide-in-from-bottom-full">
                             <div className="w-12 h-1.5 bg-[#E8EBE9] rounded-full mx-auto mb-6"></div>
 
-                            {/* 編輯資產 */}
                             {actionSheet === 'editAssets' && (
                                 <div className="space-y-4 mb-4">
                                     <h3 className="font-black text-xl mb-2">💰 修改現有資產</h3>
@@ -690,12 +775,10 @@
                                 </div>
                             )}
 
-                            {/* 編輯儲蓄目標 */}
                             {actionSheet === 'editGoal' && (
                                 <div className="space-y-4 mb-4">
                                     <h3 className="font-black text-xl mb-2 text-green-800">{editingGoalId ? '🎯 編輯目標' : '🎯 新增目標'}</h3>
                                     <p className="text-xs font-bold text-gray-500 mb-4">此目標進度獨立計算。</p>
-                                    
                                     <div><label className="text-xs font-bold text-gray-600 ml-2">目標名稱</label><input type="text" value={editGoalName} onChange={e=>setEditGoalName(e.target.value)} className="input-eco mt-1 bg-white" placeholder="例如：買車基金" /></div>
                                     <div><label className="text-xs font-bold text-gray-600 ml-2">已儲存金額 ($)</label><input type="number" value={editGoalCurrent} onChange={e=>setEditGoalCurrent(e.target.value)} className="input-eco mt-1 bg-white" /></div>
                                     <div><label className="text-xs font-bold text-gray-600 ml-2">目標金額 ($)</label><input type="number" value={editGoalTarget} onChange={e=>setEditGoalTarget(e.target.value)} className="input-eco mt-1 bg-white" /></div>
@@ -707,7 +790,6 @@
                                 </div>
                             )}
 
-                            {/* 編輯固定雷達 (支援單一編輯) */}
                             {actionSheet === 'editBills' && (
                                 <div>
                                     <div className="flex justify-between items-center mb-4">
@@ -729,28 +811,19 @@
                                         </div>
                                     </div>
                                     <div className="space-y-2 max-h-60 overflow-y-auto pb-4">
-                                        {data.bills.map((b) => (
+                                        {(data.bills || []).map((b) => (
                                             <div key={b.id} className="flex justify-between items-center bg-white border border-[#E8EBE9] p-3 rounded-xl">
-                                                <div 
-                                                    className="flex flex-col flex-1 cursor-pointer" 
-                                                    onClick={() => { setEditingBillId(b.id); setNewItemName(b.name); setNewItemCost(b.amount); }}
-                                                >
-                                                    <span className="font-bold text-sm text-[var(--text-dark)]">
-                                                        {b.name} 
-                                                        <span className="text-[10px] text-[var(--green-deep)] bg-green-100 px-1.5 py-0.5 rounded ml-2">✎ 編輯</span>
-                                                    </span>
+                                                <div className="flex flex-col flex-1 cursor-pointer" onClick={() => { setEditingBillId(b.id); setNewItemName(b.name); setNewItemCost(b.amount); }}>
+                                                    <span className="font-bold text-sm text-[var(--text-dark)]">{b.name} <span className="text-[10px] text-[var(--green-deep)] bg-green-100 px-1.5 py-0.5 rounded ml-2">✎ 編輯</span></span>
                                                     <span className="text-[var(--text-muted)] text-xs">${b.amount.toLocaleString()}</span>
                                                 </div>
-                                                <button onClick={() => setData(p => ({...p, bills: p.bills.filter(x=>x.id!==b.id)}))} className="ml-2 text-xs text-[var(--red-soft)] font-bold bg-[#FFE8E8] px-3 py-1.5 rounded-lg active:scale-95">
-                                                    移除
-                                                </button>
+                                                <button onClick={() => setData(p => ({...p, bills: (p.bills || []).filter(x=>x.id!==b.id)}))} className="ml-2 text-xs text-[var(--red-soft)] font-bold bg-[#FFE8E8] px-3 py-1.5 rounded-lg active:scale-95">移除</button>
                                             </div>
                                         ))}
                                     </div>
                                 </div>
                             )}
 
-                            {/* 編輯願望池 */}
                             {actionSheet === 'editWishes' && (
                                 <div>
                                     <div className="flex justify-between items-center mb-4"><h3 className="font-black text-lg">❄️ 停入慾望停車場</h3><button onClick={() => setActionSheet(null)} className="text-sm font-bold text-[var(--text-muted)]">完成</button></div>
@@ -760,10 +833,10 @@
                                         <button onClick={handleAddWish} className="w-full bg-blue-600 text-white font-bold py-3 rounded-xl shadow-md active:scale-[0.98]">停入車位結凍</button>
                                     </div>
                                     <div className="space-y-2 max-h-60 overflow-y-auto pb-4">
-                                        {data.wishes.map((w) => (
-                                            <div key={w.id} className="flex justify-between items-center bg-white border border-[#E8EBE9] p-3 rounded-xl"><div className="flex flex-col"><span className="font-bold text-sm">{w.name}</span><span className="text-[var(--text-muted)] text-xs">${w.cost}</span></div><button onClick={() => setData(p => ({...p, wishes: p.wishes.filter(x=>x.id!==w.id)}))} className="text-xs text-[var(--red-soft)] font-bold bg-[#FFE8E8] px-3 py-1.5 rounded-lg active:scale-95">移除</button></div>
+                                        {(data.wishes || []).map((w) => (
+                                            <div key={w.id} className="flex justify-between items-center bg-white border border-[#E8EBE9] p-3 rounded-xl"><div className="flex flex-col"><span className="font-bold text-sm">{w.name}</span><span className="text-[var(--text-muted)] text-xs">${w.cost}</span></div><button onClick={() => setData(p => ({...p, wishes: (p.wishes || []).filter(x=>x.id!==w.id)}))} className="text-xs text-[var(--red-soft)] font-bold bg-[#FFE8E8] px-3 py-1.5 rounded-lg active:scale-95">移除</button></div>
                                         ))}
-                                        {data.wishes.length === 0 && <p className="text-xs text-center text-gray-400">目前沒有願望</p>}
+                                        {(data.wishes || []).length === 0 && <p className="text-xs text-center text-gray-400">目前沒有願望</p>}
                                     </div>
                                 </div>
                             )}
@@ -807,6 +880,7 @@
                     </div>
 
                     {renderEditOverlays()}
+                    {renderZineModal()}
                 </div>
             );
         }
@@ -815,3 +889,4 @@
         root.render(<App />);
     </script>
 </body>
+</html>

@@ -1,3 +1,4 @@
+```html
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
@@ -6,9 +7,9 @@
     <title>豬豬的生活簡報</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/react@18.2.0/umd/react.production.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/react-dom@18.2.0/umd/react-dom.production.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@babel/standalone@7.23.6/babel.min.js"></script>
 
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700;900&display=swap');
@@ -43,7 +44,11 @@
         .ice-card { border: 2px solid #E0F2F1; border-radius: 20px; transition: all 0.5s; background: white; box-shadow: inset 0 0 15px rgba(224,242,241,0.5); position: relative; overflow: hidden; }
         .frozen { background: linear-gradient(135deg, rgba(255,255,255,0.8), rgba(224,242,241,0.8)); border: 2px solid #B2DFDB; filter: grayscale(0.3) brightness(0.95); }
 
-        @keyframes flyIntoEnvelope { 0% { transform: translateY(0) scale(1); opacity: 1; filter: brightness(1); } 40% { transform: translateY(-100px) scale(1.2); filter: brightness(1.5); } 100% { transform: translateY(-300px) scale(0.2); opacity: 0; filter: brightness(2); } }
+        @keyframes flyIntoEnvelope {
+            0% { transform: translateY(0) scale(1); opacity: 1; filter: brightness(1); }
+            40% { transform: translateY(-100px) scale(1.2); filter: brightness(1.5); }
+            100% { transform: translateY(-300px) scale(0.2); opacity: 0; filter: brightness(2); }
+        }
         .fly-anim { animation: flyIntoEnvelope 0.8s cubic-bezier(0.25, 1, 0.3, 1) forwards; pointer-events: none; z-index: 50; }
 
         .zine-modal { position: fixed; inset: 0; z-index: 100; background: #FAF8F5; overflow-y: auto; animation: slideUp 0.5s cubic-bezier(0.16, 1, 0.3, 1); }
@@ -61,17 +66,21 @@
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
         .bottom-sheet { background: var(--card-white); border-top-left-radius: 40px; border-top-right-radius: 40px; box-shadow: 0 -10px 40px rgba(0,0,0,0.1); max-height: 85vh; overflow-y: auto; padding-bottom: max(env(safe-area-inset-bottom), 24px); }
 
+        /* 365 Grid */
         .grid-365 { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 8px; }
         .cell-365 { aspect-ratio: 1 / 1; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 900; transition: all 0.2s; cursor: pointer; }
         .cell-saved { background-color: var(--green-deep); color: white; box-shadow: 0 4px 10px rgba(74, 124, 89, 0.3); transform: scale(1.05); }
         .cell-unsaved { background-color: #F4F5F3; color: var(--text-muted); border: 1px solid #E8EBE9; }
-        
-        .biometric-icon { animation: scanPulse 2s infinite; }
-        @keyframes scanPulse { 0% { opacity: 1; transform: scale(1); } 50% { opacity: 0.6; transform: scale(1.1); filter: drop-shadow(0 0 10px var(--green-soft)); } 100% { opacity: 1; transform: scale(1); } }
+        .cell-unsaved:active { transform: scale(0.9); }
     </style>
 </head>
 <body>
-    <div id="root"></div>
+    <div id="root">
+        <div style="padding: 40px 20px; text-align: center; color: #8A9A90;">
+            <div style="font-size: 40px; margin-bottom: 20px; animation: pulse 1.5s infinite;">🐷</div>
+            <h3 style="font-weight: 900;">連線載入中...</h3>
+        </div>
+    </div>
 
     <script type="text/babel">
         const { useState, useEffect } = React;
@@ -96,19 +105,38 @@
             
             bills: [
                 { id: 'b1', name: '房租', amount: 15000, paid: false },
-                { id: 'b2', name: '車貸', amount: 10500, paid: false }
+                { id: 'b2', name: '婷', amount: 30000, paid: false },
+                { id: 'b3', name: '美金', amount: 10000, paid: false },
+                { id: 'b4', name: '油錢', amount: 10000, paid: false },
+                { id: 'b5', name: '汽車9900 摩托車600', amount: 10500, paid: false },
+                { id: 'b6', name: '中信卡費', amount: 6000, paid: false },
+                { id: 'b7', name: '媽', amount: 5000, paid: false },
+                { id: 'b8', name: '3人健保', amount: 4956, paid: false },
+                { id: 'b9', name: '摩托車800貨車4500', amount: 5300, paid: false },
+                { id: 'b10', name: '婆婆保險', amount: 3000, paid: false },
+                { id: 'b11', name: 'Q保費', amount: 3000, paid: false },
+                { id: 'b12', name: '豬手機話費', amount: 3000, paid: false },
+                { id: 'b13', name: '成保費', amount: 2500, paid: false },
+                { id: 'b14', name: '中華電信網路費', amount: 1299, paid: false },
+                { id: 'b15', name: '05月/11月驗車', amount: 450, paid: false },
+                { id: 'b16', name: 'Bo弟保費', amount: 0, paid: false, note: '每月20號' },
+                { id: 'b17', name: '成手機話費', amount: 0, paid: false },
+                { id: 'b18', name: 'Visa卡', amount: 0, paid: false },
+                { id: 'b19', name: '貨車保養', amount: 0, paid: false }
             ],
             
-            // 雲端與訂閱服務
             subscriptions: [
-                { id: 's1', name: 'Netflix 高級版', amount: 390, cycle: 'monthly', nextDate: getTodayPlusDays(2), type: 'video' },
-                { id: 's2', name: 'ChatGPT Plus', amount: 640, cycle: 'monthly', nextDate: getTodayPlusDays(15), type: 'ai' },
-                { id: 's3', name: 'Google One 2TB', amount: 3300, cycle: 'yearly', nextDate: getTodayPlusDays(45), type: 'cloud' }
+                { id: 's1', name: 'Netflix', amount: 390, cycle: 'monthly', nextDate: getTodayPlusDays(5), type: 'video' },
+                { id: 's2', name: 'Spotify', amount: 149, cycle: 'monthly', nextDate: getTodayPlusDays(12), type: 'video' }
             ],
 
-            quickTags: [ '早餐', '午餐', '晚餐', '咖啡', '加油', '日用品' ],
+            quickTags: [
+                '成成的煙', '豬豬的煙', '成成的咖啡', '早餐', '午餐', '晚餐', '下午茶', '宵夜',
+                '奶粉', 'Bo弟奶粉', '尿布', 'Q尿布', 'Bo弟尿布', '保久乳', '羊奶', '乳酸菌、寶乖亞',
+                '加油', '生活用品', '嬰幼用品', '疫苗接種', '洗衣機修理費', '澎湖'
+            ],
             customGoals: [ { id: 1, name: '買車頭期款', target: 500000, current: 0 } ],
-            wishes: [ { id: 1, name: 'Dyson 吸塵器', cost: 4000, frozen: true, reason: '舊的壞了' } ]
+            wishes: [ { id: 1, name: '新款 Dyson 吸塵器', cost: 4000, frozen: true, reason: '舊的壞了' } ]
         };
 
         const getPiggyTitleInfo = (level) => {
@@ -124,30 +152,26 @@
             const [data, setData] = useState(() => {
                 let parsed = DEFAULT_STATE;
                 try {
-                    const saved = localStorage.getItem('piggy_lifeos_v8_subs');
-                    // 向下相容讀取舊版資料
-                    const oldSaved = localStorage.getItem('piggy_lifeos_stable_v7');
+                    const saved = localStorage.getItem('piggy_lifeos_v9_grid');
+                    const oldSaved = localStorage.getItem('piggy_lifeos_v8_subs') || localStorage.getItem('piggy_lifeos_stable_v7');
                     const targetSave = saved || oldSaved;
                     if (targetSave) {
                         const savedObj = JSON.parse(targetSave);
                         parsed = {
                             ...DEFAULT_STATE,
                             ...savedObj,
-                            subscriptions: Array.isArray(savedObj.subscriptions) && savedObj.subscriptions.length > 0 ? savedObj.subscriptions : DEFAULT_STATE.subscriptions
+                            subscriptions: Array.isArray(savedObj.subscriptions) ? savedObj.subscriptions : DEFAULT_STATE.subscriptions
                         };
                     }
                 } catch(e) { console.error("讀取失敗", e); }
                 return parsed;
             });
 
-            useEffect(() => { localStorage.setItem('piggy_lifeos_v8_subs', JSON.stringify(data)); }, [data]);
+            useEffect(() => { localStorage.setItem('piggy_lifeos_v9_grid', JSON.stringify(data)); }, [data]);
 
             const [activeTab, setActiveTab] = useState('home'); // home, bills, subs, expense, stats, future
             const [toastMsg, setToastMsg] = useState(null);
             
-            // 安全解鎖機制
-            const [isSubUnlocked, setIsSubUnlocked] = useState(false);
-            const [passkeyLoading, setPasskeyLoading] = useState(false);
             const [aiFeedback, setAiFeedback] = useState(null); // AI 分析 Modal
 
             // 表單狀態
@@ -169,7 +193,7 @@
             const [newItemCost, setNewItemCost] = useState('');
             const [newItemNote, setNewItemNote] = useState('');
             const [editingBillId, setEditingBillId] = useState(null); 
-            const [newItemCycle, setNewItemCycle] = useState('monthly'); // 訂閱週期
+            const [newItemCycle, setNewItemCycle] = useState('monthly'); 
             
             const [showZine, setShowZine] = useState(false);
             const [animatingWishId, setAnimatingWishId] = useState(null);
@@ -191,39 +215,20 @@
                 });
             };
 
-            // Passkey 解鎖模擬
-            const handleUnlockSubs = () => {
-                setPasskeyLoading(true);
-                setTimeout(() => {
-                    setPasskeyLoading(false);
-                    setIsSubUnlocked(true);
-                    showToast('🔓 驗證成功，歡迎進入私密金庫');
-                }, 1200);
-            };
-
-            // AI 訂閱分析模擬
             const handleAIAnalysis = (sub) => {
                 const name = sub.name.toLowerCase();
-                let analysis = "";
+                let analysis = "【穩定使用中】📊 該服務的扣款與使用頻率皆符合你的日常節奏，繼續保持良好的數位生活管理吧！";
                 if (name.includes('netflix') || name.includes('disney') || name.includes('spotify') || sub.type === 'video') {
                     analysis = "【觀看/聆聽時數偏低】🤖 根據大數據分析，你本月使用此服務不到 8 小時。建議若下個月仍無追劇計畫，可暫時取消訂閱以節省開支！";
-                } else if (name.includes('gpt') || name.includes('ai')) {
-                    analysis = "【高頻率生產力工具】✨ 恭喜！本月你頻繁呼叫 AI 助理，為你節省了約 25 小時的繁瑣工作時間。這筆訂閱的投資報酬率極高！";
-                } else if (name.includes('google') || name.includes('cloud') || name.includes('icloud')) {
-                    analysis = "【雲端安全守護中】☁️ 你的空間使用率約 65%，不僅無痛備份了珍貴的回憶與檔案，目前容量仍非常充足，是不可或缺的數位保險。";
-                } else {
-                    analysis = "【穩定使用中】📊 該服務的扣款與使用頻率皆符合你的日常節奏，繼續保持良好的數位生活管理吧！";
                 }
                 setAiFeedback({ name: sub.name, text: analysis });
             };
 
-            // 日期輔助
             const getDaysDifference = (targetDate) => {
                 const today = new Date();
                 today.setHours(0,0,0,0);
                 const target = new Date(targetDate);
-                const diffTime = target - today;
-                return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                return Math.ceil((target - today) / (1000 * 60 * 60 * 24));
             };
 
             // --- 其他核心操作 ---
@@ -256,7 +261,13 @@
             };
 
             const toggleBillStatus = (billId) => {
-                setData(p => ({ ...p, bills: (p.bills || []).map(b => b.id === billId ? { ...b, paid: !b.paid } : b) }));
+                setData(p => ({ ...p, bills: (p.bills || []).map(b => {
+                    if (b.id === billId) {
+                        showToast(!b.paid ? `✅ 已標記支付：${b.name}` : `↩️ 已取消支付：${b.name}`);
+                        return { ...b, paid: !b.paid };
+                    }
+                    return b;
+                })}));
             };
 
             const handleDefrost = (wishId) => {
@@ -294,6 +305,7 @@
                 showToast('🎯 目標已儲存'); setActionSheet(null);
             };
             const handleDeleteGoal = (id) => { setData(p => ({ ...p, customGoals: (p.customGoals || []).filter(g => g.id !== id) })); };
+            
             const handleSaveBill = () => {
                 if(!newItemName) return;
                 const amount = parseInt(newItemCost) || 0;
@@ -303,11 +315,13 @@
                 });
                 setNewItemName(''); setNewItemCost(''); setNewItemNote(''); setEditingBillId(null); showToast('📡 已儲存固定支出');
             };
+
             const handleAddWish = () => {
                 if(!newItemName) return;
                 setData(p => ({ ...p, wishes: [{ id: Date.now(), name: newItemName, cost: parseInt(newItemCost)||0, frozen: true, reason: '自訂願望' }, ...(p.wishes || [])] }));
                 setNewItemName(''); setNewItemCost(''); showToast('❄️ 已停入慾望停車場');
             };
+
             const handleSaveSub = () => {
                 if(!newItemName) return;
                 const amount = parseInt(newItemCost) || 0;
@@ -316,6 +330,10 @@
                     return { ...p, subscriptions: [...(p.subscriptions||[]), newSub] };
                 });
                 setNewItemName(''); setNewItemCost(''); setNewItemNote(''); setActionSheet(null); showToast('☁️ 已新增訂閱服務');
+            };
+
+            const handleDeleteSub = (id) => {
+                setData(p => ({ ...p, subscriptions: (p.subscriptions || []).filter(s => s.id !== id) }));
             };
 
             // --- 畫面渲染 ---
@@ -364,7 +382,7 @@
                 );
             };
 
-            // 頁籤 2: 固定支出雷達
+            // 頁籤 2: 固定支出雷達 (★ 網格方塊排版)
             const renderBillsView = () => (
                 <div className="space-y-4 fade-in mt-2 pb-24">
                     {renderHeader()}
@@ -373,18 +391,23 @@
                             <h3 className="font-black text-lg flex items-center text-amber-900"><span className="text-2xl mr-2">📡</span> 固定支出雷達</h3>
                             <button onClick={() => { setEditingBillId(null); setNewItemName(''); setNewItemCost(''); setNewItemNote(''); setActionSheet('editBills'); }} className="text-xs bg-amber-100 text-amber-800 px-3 py-1.5 rounded-xl font-black">⚙️ 編輯項目</button>
                         </div>
-                        <p className="text-xs text-amber-700 font-bold mb-4 bg-amber-100/50 p-2 rounded-lg">點擊打勾僅作「已付紀錄」，不會扣除資產喔！</p>
+                        <p className="text-xs text-amber-700 font-bold mb-4 bg-amber-100/50 p-2 rounded-lg">點擊方塊內的打勾作「已付紀錄」，不扣除資產喔！</p>
                         
-                        <div className="space-y-3 max-h-[60vh] overflow-y-auto pr-2 pb-4">
+                        {/* 這裡改用 grid-cols-3 排版 */}
+                        <div className="grid grid-cols-3 gap-3 max-h-[60vh] overflow-y-auto pr-1 pb-4">
+                            {(data.bills || []).length === 0 && <p className="col-span-3 text-sm text-center text-[var(--text-muted)] font-bold py-8">目前沒有固定支出項目</p>}
                             {(data.bills || []).map((bill) => (
-                                <div key={bill.id} className={`bento-item shadow-sm border transition-all duration-300 !p-4 ${bill.paid ? 'bg-gray-50 border-gray-200 opacity-50' : 'bg-white border-[#EED7A1]'}`}>
-                                    <div className="flex justify-between items-start mb-2">
-                                        <div><p className={`font-bold ${bill.paid ? 'text-gray-400 line-through' : 'text-[var(--text-dark)]'}`}>{bill.name}</p>{bill.note && <p className="text-[10px] text-gray-400 mt-0.5">{bill.note}</p>}</div>
-                                        <span className={`font-black text-lg ${bill.paid ? 'text-gray-400' : 'text-[var(--text-dark)]'}`}>${bill.amount.toLocaleString()}</span>
+                                <div key={bill.id} className={`shadow-sm border rounded-2xl transition-all duration-300 p-3 flex flex-col justify-between aspect-square ${bill.paid ? 'bg-gray-50 border-gray-200 opacity-50' : 'bg-white border-[#EED7A1]'}`}>
+                                    <div className="overflow-hidden">
+                                        <p className={`font-bold text-xs line-clamp-2 leading-tight ${bill.paid ? 'text-gray-400 line-through' : 'text-[var(--text-dark)]'}`}>{bill.name}</p>
+                                        {bill.note && <p className="text-[9px] text-gray-400 mt-1 truncate">{bill.note}</p>}
                                     </div>
-                                    <button onClick={() => toggleBillStatus(bill.id)} className={`w-full text-xs font-bold py-3 rounded-xl mt-2 active:scale-95 transition-transform ${bill.paid ? 'bg-gray-200 text-gray-500' : 'bg-[#F4F5F3] text-[var(--green-deep)]'}`}>
-                                        {bill.paid ? '↩️ 點擊取消支付' : '✅ 標記為已支付'}
-                                    </button>
+                                    <div>
+                                        <div className={`font-black text-sm mt-1 mb-2 ${bill.paid ? 'text-gray-400' : 'text-[var(--text-dark)]'}`}>${bill.amount.toLocaleString()}</div>
+                                        <button onClick={() => toggleBillStatus(bill.id)} className={`w-full text-[10px] font-bold py-1.5 rounded-lg active:scale-95 transition-transform ${bill.paid ? 'bg-gray-200 text-gray-500' : 'bg-[#F4F5F3] text-[var(--green-deep)]'}`}>
+                                            {bill.paid ? '已付' : '✅ 支付'}
+                                        </button>
+                                    </div>
                                 </div>
                             ))}
                         </div>
@@ -392,24 +415,9 @@
                 </div>
             );
 
-            // 頁籤 3: 雲端訂閱管理 (全新功能)
+            // 頁籤 3: 雲端訂閱管理 (取消 Passkey)
             const renderSubsView = () => {
-                if (!isSubUnlocked) {
-                    return (
-                        <div className="h-full flex flex-col items-center justify-center fade-in pt-32 pb-32">
-                            <div className="text-6xl mb-6 biometric-icon">📱</div>
-                            <h2 className="text-2xl font-black mb-2">私密財務金庫</h2>
-                            <p className="text-sm text-gray-500 mb-8 px-8 text-center font-bold">為保護您的訂閱與金流隱私<br/>請使用 Passkey 或生物辨識解鎖</p>
-                            <button onClick={handleUnlockSubs} className="bg-[var(--text-dark)] text-white px-8 py-4 rounded-full font-black shadow-xl active:scale-95 flex items-center transition-transform">
-                                {passkeyLoading ? <span className="animate-spin mr-2">⚙️</span> : <span className="mr-2">🔑</span>}
-                                {passkeyLoading ? '安全驗證中...' : '使用 Passkey 解鎖'}
-                            </button>
-                        </div>
-                    );
-                }
-
                 const subsArr = data.subscriptions || [];
-                // 計算總月費與年費
                 let monthlyTotal = 0;
                 let yearlyTotal = 0;
                 subsArr.forEach(s => {
@@ -462,11 +470,14 @@
                                             </div>
                                             
                                             <div className="flex justify-between items-center mt-2">
-                                                {isUrgent ? (
-                                                    <span className="text-xs font-black text-red-600 bg-red-100 px-2 py-1 rounded-md animate-pulse">⚠️ {daysLeft === 0 ? '今日扣款！' : `剩餘 ${daysLeft} 天扣款`}</span>
-                                                ) : (
-                                                    <span className="text-xs font-bold text-gray-400">{daysLeft < 0 ? '已過期' : `約 ${daysLeft} 天後扣款`}</span>
-                                                )}
+                                                <div className="flex flex-col">
+                                                    {isUrgent ? (
+                                                        <span className="text-[10px] font-black text-red-600 bg-red-100 px-2 py-1 rounded-md animate-pulse mb-1">⚠️ {daysLeft === 0 ? '今日扣款！' : `剩餘 ${daysLeft} 天扣款`}</span>
+                                                    ) : (
+                                                        <span className="text-[10px] font-bold text-gray-400 mb-1">{daysLeft < 0 ? '已過期' : `約 ${daysLeft} 天後扣款`}</span>
+                                                    )}
+                                                    <button onClick={() => handleDeleteSub(sub.id)} className="text-[10px] text-gray-400 underline text-left">刪除</button>
+                                                </div>
                                                 
                                                 <button onClick={() => handleAIAnalysis(sub)} className="text-xs font-black bg-gradient-to-r from-purple-500 to-indigo-500 text-white px-3 py-1.5 rounded-lg shadow-md active:scale-95">
                                                     ✨ AI 分析
@@ -493,11 +504,14 @@
                             <button onClick={() => {
                                 setEditGoalTarget(goal.target); setEditGoalCurrent(goal.current); setEditGoalName(goal.name); setEditingGoalId(goal.id || null); setActionSheet('editGoal');
                             }} className="absolute top-2 right-2 text-[10px] font-bold bg-amber-200 text-amber-800 px-2 py-1 rounded-lg z-10">⚙️ 編輯</button>
+                            
                             <div className="relative z-10">
                                 <p className="text-xs font-bold text-amber-800 mb-1">🎯 置頂存款目標</p>
                                 <h3 className="font-black text-lg text-[var(--text-dark)]">{goal.name}</h3>
                             </div>
-                            <div className="text-right relative z-10 pt-4"><span className="font-black text-2xl text-amber-600">{percent}%</span></div>
+                            <div className="text-right relative z-10 pt-4">
+                                <span className="font-black text-2xl text-amber-600">{percent}%</span>
+                            </div>
                             <div className="absolute left-0 top-0 h-full bg-amber-200/40 transition-all duration-500" style={{ width: percent + '%' }}></div>
                         </div>
 
@@ -576,6 +590,7 @@
                                 <button onClick={() => { setEditGoalName(''); setEditGoalTarget(''); setEditGoalCurrent(''); setEditingGoalId(null); setActionSheet('editGoal'); }} className="text-xs bg-green-100 text-green-800 px-3 py-1.5 rounded-xl font-black">+ 新增目標</button>
                             </div>
                             <div className="space-y-4">
+                                {goalsArr.length === 0 && <p className="text-sm text-center text-green-700/50 font-bold py-6">目前沒有儲蓄目標喔</p>}
                                 {goalsArr.map(goal => {
                                     const percent = goal.target > 0 ? Math.min(100, Math.floor((goal.current / goal.target) * 100)) : 0;
                                     return (
@@ -601,7 +616,7 @@
                                         <div className={`ice-card p-5 ${wish.frozen ? 'frozen' : 'ring-2 ring-green-300'}`}>
                                             <div className="flex justify-between items-start mb-2 relative z-10"><div><p className="font-black text-[var(--text-dark)] text-lg">{wish.name}</p></div><span className="font-black text-xl text-[var(--text-dark)]">${wish.cost.toLocaleString()}</span></div>
                                             <div className="mt-4 relative z-10">
-                                                {wish.frozen ? <button onClick={() => handleDefrost(wish.id)} className="w-full bg-white/80 backdrop-blur text-[var(--text-dark)] text-xs font-black py-3 rounded-xl shadow-sm border border-gray-200">❄️ 點擊解凍決定是否購買</button> : <div className="flex space-x-2 animate-in fade-in"><button onClick={() => handleDefrost(wish.id)} className="flex-1 bg-[var(--green-deep)] text-white text-xs font-black py-3 rounded-xl shadow-[0_4px_15px_rgba(74,124,89,0.3)] active:scale-95 transition-transform">不買了 (轉為存款)</button><button onClick={() => { alert('已購買！'); handleDefrost(wish.id); }} className="flex-1 bg-gray-100 text-gray-500 text-xs font-black py-3 rounded-xl active:scale-95 transition-transform">還是要買</button></div>}
+                                                {wish.frozen ? <button onClick={() => handleDefrost(wish.id)} className="w-full bg-white/80 backdrop-blur text-[var(--text-dark)] text-xs font-black py-3 rounded-xl shadow-sm border border-gray-200">❄️ 點擊解凍決定是否購買</button> : <div className="flex space-x-2 animate-in fade-in"><button onClick={() => handleDefrost(wish.id)} className="flex-1 bg-[var(--green-deep)] text-white text-xs font-black py-3 rounded-xl shadow-[0_4px_15px_rgba(74,124,89,0.3)] active:scale-95 transition-transform">不買了 (轉為存款)</button><button onClick={() => { alert('已購買！請記得去記帳喔。'); handleDefrost(wish.id); }} className="flex-1 bg-gray-100 text-gray-500 text-xs font-black py-3 rounded-xl active:scale-95 transition-transform">還是要買</button></div>}
                                             </div>
                                         </div>
                                     </div>
@@ -612,7 +627,6 @@
                 );
             };
 
-            // AI 分析彈出視窗
             const renderAiModal = () => {
                 if (!aiFeedback) return null;
                 return (
@@ -637,7 +651,6 @@
                         <div className="bottom-sheet p-6 animate-in slide-in-from-bottom-full">
                             <div className="w-12 h-1.5 bg-[#E8EBE9] rounded-full mx-auto mb-6"></div>
 
-                            {/* 其他既有的編輯功能 (資產、目標、固定支出、願望) */}
                             {actionSheet === 'addSubs' && (
                                 <div className="space-y-4 mb-4">
                                     <h3 className="font-black text-xl mb-2 text-indigo-800">☁️ 新增訂閱服務</h3>
@@ -651,7 +664,6 @@
                                 </div>
                             )}
 
-                            {/* 保留原本的編輯視窗... (字數考量簡略顯示，已確保功能存在) */}
                             {actionSheet === 'editAssets' && (
                                 <div className="space-y-4 mb-4"><h3 className="font-black text-xl mb-2">💰 修改現有資產</h3><input type="number" value={editAssetsAmount} onChange={e=>setEditAssetsAmount(e.target.value)} className="input-eco mt-1 bg-white text-lg font-black" /><button onClick={handleUpdateAssets} className="w-full bg-[var(--text-dark)] text-white font-black py-4 rounded-2xl mt-4 active:scale-95 shadow-md">儲存更新</button></div>
                             )}
@@ -673,6 +685,16 @@
                                         <input type="text" value={newItemNote} onChange={e=>setNewItemNote(e.target.value)} placeholder="備註(可不填)" className="input-eco py-3 bg-white w-full" />
                                         <div className="flex space-x-2 mt-2">{editingBillId && <button onClick={() => { setEditingBillId(null); setNewItemName(''); setNewItemCost(''); setNewItemNote(''); }} className="bg-gray-200 text-gray-600 font-bold py-3 px-4 rounded-xl">取消</button>}<button onClick={handleSaveBill} className="flex-1 bg-[var(--text-dark)] text-white font-bold py-3 rounded-xl">{editingBillId ? '儲存修改' : '新增帳單'}</button></div>
                                     </div>
+                                    <div className="space-y-2 max-h-60 overflow-y-auto pb-4">
+                                        {(data.bills||[]).map((b) => (
+                                            <div key={b.id} className="flex justify-between items-center bg-white border border-[#E8EBE9] p-3 rounded-xl">
+                                                <div className="flex flex-col flex-1 cursor-pointer" onClick={() => { setEditingBillId(b.id); setNewItemName(b.name); setNewItemCost(b.amount); setNewItemNote(b.note||''); }}>
+                                                    <span className="font-bold text-sm text-[var(--text-dark)]">{b.name} <span className="text-[10px] text-[var(--green-deep)] bg-green-100 px-1.5 py-0.5 rounded ml-2">✎ 編輯</span></span>
+                                                </div>
+                                                <button onClick={() => setData(p => ({...p, bills: (p.bills||[]).filter(x=>x.id!==b.id)}))} className="ml-2 text-xs text-[var(--red-soft)] font-bold bg-[#FFE8E8] px-3 py-1.5 rounded-lg">移除</button>
+                                            </div>
+                                        ))}
+                                    </div>
                                 </div>
                             )}
                             {actionSheet === 'editWishes' && (
@@ -690,7 +712,6 @@
                 );
             };
 
-            // 六大底部導覽列
             return (
                 <div className="min-h-screen relative bg-[var(--bg-cream)]">
                     {toastMsg && <div className="toast">{toastMsg}</div>}
@@ -705,7 +726,6 @@
 
                     <div className="fixed bottom-0 w-full z-40">
                         <nav className="bottom-nav pb-safe bg-white/95 backdrop-blur-md">
-                            {/* 改為 5 個圖示避免過度壅擠，把統計移到底部選單外或保持 5 個，這裡我們把「統計」移除了，因為用戶之前說只要記錄年度每月開支。但為了維持這5個最常用功能，我將導覽列設定為 5 格 */}
                             <div className="max-w-md mx-auto flex justify-between items-center px-1 py-3">
                                 <button onClick={() => setActiveTab('home')} className={`flex flex-col items-center flex-1 transition-transform ${activeTab==='home'?'scale-110 text-[var(--text-dark)]':'text-[var(--text-muted)] opacity-60'}`}><span className="text-xl mb-1">🏕️</span><span className="text-[9px] font-black tracking-tighter">365存錢</span></button>
                                 <button onClick={() => setActiveTab('bills')} className={`flex flex-col items-center flex-1 transition-transform ${activeTab==='bills'?'scale-110 text-[var(--text-dark)]':'text-[var(--text-muted)] opacity-60'}`}><span className="text-xl mb-1">📡</span><span className="text-[9px] font-black tracking-tighter">固定支出</span></button>

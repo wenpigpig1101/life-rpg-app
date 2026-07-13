@@ -6,8 +6,6 @@
     <title>豬豬的生活簡報</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
-    
-    <!-- 使用全球最穩定 cdnjs 確保載入，解決白屏問題 -->
     <script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
     <script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.6/babel.min.js"></script>
@@ -43,11 +41,7 @@
         .ice-card { border: 2px solid #E0F2F1; border-radius: 20px; transition: all 0.5s; background: white; box-shadow: inset 0 0 15px rgba(224,242,241,0.5); position: relative; overflow: hidden; }
         .frozen { background: linear-gradient(135deg, rgba(255,255,255,0.8), rgba(224,242,241,0.8)); border: 2px solid #B2DFDB; filter: grayscale(0.3) brightness(0.95); }
 
-        @keyframes flyIntoEnvelope {
-            0% { transform: translateY(0) scale(1); opacity: 1; filter: brightness(1); }
-            40% { transform: translateY(-100px) scale(1.2); filter: brightness(1.5); }
-            100% { transform: translateY(-300px) scale(0.2); opacity: 0; filter: brightness(2); }
-        }
+        @keyframes flyIntoEnvelope { 0% { transform: translateY(0) scale(1); opacity: 1; filter: brightness(1); } 40% { transform: translateY(-100px) scale(1.2); filter: brightness(1.5); } 100% { transform: translateY(-300px) scale(0.2); opacity: 0; filter: brightness(2); } }
         .fly-anim { animation: flyIntoEnvelope 0.8s cubic-bezier(0.25, 1, 0.3, 1) forwards; pointer-events: none; z-index: 50; }
 
         .zine-modal { position: fixed; inset: 0; z-index: 100; background: #FAF8F5; overflow-y: auto; animation: slideUp 0.5s cubic-bezier(0.16, 1, 0.3, 1); }
@@ -65,7 +59,6 @@
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
         .bottom-sheet { background: var(--card-white); border-top-left-radius: 40px; border-top-right-radius: 40px; box-shadow: 0 -10px 40px rgba(0,0,0,0.1); max-height: 85vh; overflow-y: auto; padding-bottom: max(env(safe-area-inset-bottom), 24px); }
 
-        /* 365 Grid */
         .grid-365 { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 8px; }
         .cell-365 { aspect-ratio: 1 / 1; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 900; transition: all 0.2s; cursor: pointer; }
         .cell-saved { background-color: var(--green-deep); color: white; box-shadow: 0 4px 10px rgba(74, 124, 89, 0.3); transform: scale(1.05); }
@@ -78,24 +71,31 @@
         <div style="padding: 40px 20px; text-align: center; color: #8A9A90;">
             <div style="font-size: 40px; margin-bottom: 20px; animation: pulse 1.5s infinite;">🐷</div>
             <h3 style="font-weight: 900;">連線載入中...</h3>
-            <p style="font-size: 12px; margin-top: 10px;">正在讀取並恢復歷史資料...</p>
+            <p style="font-size: 12px; margin-top: 10px;">系統正在保衛您的資料</p>
         </div>
     </div>
 
     <script type="text/babel">
         const { useState, useEffect } = React;
 
-        const CATEGORY_CONFIG = {
-            food: { label: '🍔 餐飲', color: 'var(--brown-dirt)' },
-            shopping: { label: '🛍️ 購物', color: 'var(--red-soft)' },
-            transport: { label: '🚗 交通', color: 'var(--water-blue)' },
-            life: { label: '🏠 生活', color: 'var(--green-soft)' },
-            other: { label: '📦 其他', color: '#FCD34D' }
+        // ★ 新增：自訂分類的預設設定
+        const DEFAULT_CATEGORIES = [
+            { id: 'food', label: '🍔 餐飲', color: '#D4A373' },
+            { id: 'shopping', label: '🛍️ 購物', color: '#D98C8C' },
+            { id: 'transport', label: '🚗 交通', color: '#60A5FA' },
+            { id: 'life', label: '🏠 生活', color: '#A3B899' },
+            { id: 'other', label: '📦 其他', color: '#FCD34D' }
+        ];
+
+        const getTodayPlusDays = (days) => {
+            const d = new Date(); d.setDate(d.getDate() + days);
+            return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
         };
 
         const DEFAULT_STATE = {
             player: { level: 1, exp: 0, maxExp: 100 },
             assets: 152400, spent: 0, expenses: [], savings365: [], 
+            categories: DEFAULT_CATEGORIES, // 加入自訂分類到資料庫中
             bills: [
                 { id: 'b1', name: '房租', amount: 15000, paid: false },
                 { id: 'b2', name: '婷', amount: 30000, paid: false },
@@ -123,7 +123,7 @@
                 '加油', '生活用品', '嬰幼用品', '疫苗接種', '洗衣機修理費', '澎湖'
             ],
             customGoals: [ { id: 1, name: '買車頭期款', target: 500000, current: 0 } ],
-            wishes: [ { id: 1, name: '新款 Dyson 吸塵器', cost: 4000, frozen: true, reason: '舊的壞了' } ]
+            wishes: [ { id: 1, name: '新款 Dyson 吸塵器', cost: 4000, frozen: true, reason: '舊的壞了' }, { id: 2, name: '名牌小包包', cost: 8500, frozen: true, reason: '犒賞自己' } ]
         };
 
         const getPiggyTitleInfo = (level) => {
@@ -135,59 +135,67 @@
             return { title: '豬豬探索者', icon: '🌱' };
         };
 
-        function App() {
-            // ★ 安全資料救援：優先讀取最原始的 piggy_life_data_v3，確保歷史資料回歸
-            const [data, setData] = useState(() => {
-                let parsed = DEFAULT_STATE;
-                const storageKeys = [
-                    'piggy_active_v11',
-                    'piggy_lifeos_v10_final',
-                    'piggy_lifeos_v9_grid',
-                    'piggy_lifeos_stable_v7',
-                    'piggy_life_data_v3' // 最原始的神聖金鑰
-                ];
-                
-                for (let i = 0; i < storageKeys.length; i++) {
-                    const saved = localStorage.getItem(storageKeys[i]);
-                    if (saved) {
-                        try {
-                            const temp = JSON.parse(saved);
-                            if (temp && (Array.isArray(temp.expenses) || Array.isArray(temp.bills))) {
-                                parsed = {
-                                    ...DEFAULT_STATE,
-                                    ...temp,
-                                    expenses: Array.isArray(temp.expenses) ? temp.expenses : [],
-                                    savings365: Array.isArray(temp.savings365) ? temp.savings365 : [],
-                                    bills: Array.isArray(temp.bills) ? temp.bills : DEFAULT_STATE.bills,
-                                    quickTags: Array.isArray(temp.quickTags) ? temp.quickTags : DEFAULT_STATE.quickTags,
-                                    customGoals: Array.isArray(temp.customGoals) && temp.customGoals.length > 0 ? temp.customGoals : DEFAULT_STATE.customGoals
-                                };
-                                break; // 找到第一個有資料的就停止
-                            }
-                        } catch(err) {}
-                    }
+        const scanAllHistoricalBackups = () => {
+            const found = [];
+            const possibleKeys = ['piggy_life_data_v3', 'piggy_lifeos_stable_v6', 'piggy_lifeos_stable_v7', 'piggy_lifeos_v8_subs', 'piggy_lifeos_v9_grid', 'piggy_lifeos_v10_final', 'piggy_active_v11', 'piggy_active_v12'];
+            possibleKeys.forEach(k => {
+                const val = localStorage.getItem(k);
+                if (val) {
+                    try {
+                        const parsed = JSON.parse(val);
+                        const expCount = Array.isArray(parsed.expenses) ? parsed.expenses.length : 0;
+                        const savedCount = Array.isArray(parsed.savings365) ? parsed.savings365.length : 0;
+                        found.push({ key: k, label: k, expensesCount: expCount, savingsCount: savedCount, assets: parsed.assets || 0, raw: val });
+                    } catch(e) {}
                 }
-                return parsed;
+            });
+            return found;
+        };
+
+        function App() {
+            // ★ 安全初始化：自動找尋歷史最完整的備份
+            const [data, setData] = useState(() => {
+                const active = localStorage.getItem('piggy_active_v12');
+                if (active) {
+                    try { 
+                        const d = { ...DEFAULT_STATE, ...JSON.parse(active) };
+                        if (!d.categories || d.categories.length === 0) d.categories = DEFAULT_CATEGORIES;
+                        return d; 
+                    } catch(e) {}
+                }
+                const backups = scanAllHistoricalBackups();
+                if (backups.length > 0) {
+                    backups.sort((a, b) => (b.expensesCount + b.savingsCount) - (a.expensesCount + a.savingsCount));
+                    try {
+                        const bestBackup = JSON.parse(backups[0].raw);
+                        if (!bestBackup.categories || bestBackup.categories.length === 0) bestBackup.categories = DEFAULT_CATEGORIES;
+                        if (!bestBackup.customGoals || bestBackup.customGoals.length === 0) bestBackup.customGoals = DEFAULT_STATE.customGoals;
+                        return { ...DEFAULT_STATE, ...bestBackup };
+                    } catch(e) {}
+                }
+                return DEFAULT_STATE;
             });
 
-            // 存檔時，同步存回原本的 key 確保資料安全
             useEffect(() => {
-                localStorage.setItem('piggy_life_data_v3', JSON.stringify(data));
-                localStorage.setItem('piggy_active_v11', JSON.stringify(data));
+                localStorage.setItem('piggy_active_v12', JSON.stringify(data));
             }, [data]);
 
-            // 恢復為最乾淨的 5 個頁籤
             const [activeTab, setActiveTab] = useState('home'); 
             const [toastMsg, setToastMsg] = useState(null);
-            
             const [showStatsModal, setShowStatsModal] = useState(false); 
+            const [showRecoveryCenter, setShowRecoveryCenter] = useState(false); 
+            const [importText, setImportText] = useState('');
 
             // 快速記帳表單
             const [expenseTitle, setExpenseTitle] = useState('');
-            const [expenseNote, setExpenseNote] = useState(''); // ★ 新增：備註輸入框
+            const [expenseNote, setExpenseNote] = useState(''); // 新增：備註輸入
             const [expenseAmount, setExpenseAmount] = useState('');
             const [expenseCategory, setExpenseCategory] = useState('food');
             
+            // 自訂分類狀態
+            const [newCatLabel, setNewCatLabel] = useState('');
+            const [newCatColor, setNewCatColor] = useState('#D98C8C');
+
             const [showEditTags, setShowEditTags] = useState(false);
             const [newTag, setNewTag] = useState('');
             const [actionSheet, setActionSheet] = useState(null);
@@ -203,7 +211,6 @@
             const [newItemCost, setNewItemCost] = useState('');
             const [newItemNote, setNewItemNote] = useState('');
             const [editingBillId, setEditingBillId] = useState(null); 
-            
             const [showZine, setShowZine] = useState(false);
             const [animatingWishId, setAnimatingWishId] = useState(null);
 
@@ -244,7 +251,7 @@
                     return { ...p, assets: p.assets - amount, spent: p.spent + amount, expenses: [newExpense, ...(p.expenses || [])] };
                 });
                 gainRewards(10); showToast(`💸 已紀錄：${expenseTitle} $${amount}`);
-                setExpenseTitle(''); setExpenseAmount(''); setExpenseNote(''); // 儲存後清空備註
+                setExpenseTitle(''); setExpenseAmount(''); setExpenseNote('');
             };
 
             const handleDeleteExpense = (id, amount) => {
@@ -285,7 +292,19 @@
                 }
             };
 
-            // --- 編輯儲存 ---
+            // --- 新增：編輯分類邏輯 ---
+            const handleAddCategory = () => {
+                if (!newCatLabel) return;
+                const newCat = { id: 'cat_' + Date.now(), label: newCatLabel, color: newCatColor };
+                setData(p => ({ ...p, categories: [...(p.categories || DEFAULT_CATEGORIES), newCat] }));
+                setNewCatLabel('');
+                showToast('🏷️ 分類已新增');
+            };
+            const handleDeleteCategory = (id) => {
+                setData(p => ({ ...p, categories: (p.categories || []).filter(c => c.id !== id) }));
+            };
+
+            // --- 編輯儲存邏輯 ---
             const handleUpdateAssets = () => { const amt = parseInt(editAssetsAmount); if (!isNaN(amt)) { setData(p => ({ ...p, assets: amt })); showToast('💰 資產已更新'); setActionSheet(null); } };
             const handleSaveGoal = () => {
                 if(!editGoalName) return;
@@ -297,7 +316,6 @@
                 showToast('🎯 目標已儲存'); setActionSheet(null);
             };
             const handleDeleteGoal = (id) => { setData(p => ({ ...p, customGoals: (p.customGoals || []).filter(g => g.id !== id) })); };
-            
             const handleSaveBill = () => {
                 if(!newItemName) return;
                 const amount = parseInt(newItemCost) || 0;
@@ -307,34 +325,45 @@
                 });
                 setNewItemName(''); setNewItemCost(''); setNewItemNote(''); setEditingBillId(null); showToast('📡 已儲存固定支出');
             };
-
             const handleAddWish = () => {
                 if(!newItemName) return;
                 setData(p => ({ ...p, wishes: [{ id: Date.now(), name: newItemName, cost: parseInt(newItemCost)||0, frozen: true, reason: '自訂願望' }, ...(p.wishes || [])] }));
                 setNewItemName(''); setNewItemCost(''); showToast('❄️ 已停入慾望停車場');
             };
 
+            const handleRestoreFromKey = (rawJsonString) => {
+                try {
+                    const parsed = JSON.parse(rawJsonString);
+                    if (!parsed.categories || parsed.categories.length === 0) parsed.categories = DEFAULT_CATEGORIES;
+                    if (!parsed.customGoals || parsed.customGoals.length === 0) parsed.customGoals = DEFAULT_STATE.customGoals;
+                    setData({ ...DEFAULT_STATE, ...parsed });
+                    showToast(`✅ 資料還原成功！`);
+                    setShowRecoveryCenter(false);
+                } catch(e) { alert('還原失敗'); }
+            };
+
+            const handleExportText = () => {
+                const dummy = document.createElement("textarea"); document.body.appendChild(dummy);
+                dummy.value = JSON.stringify(data); dummy.select(); document.execCommand("copy"); document.body.removeChild(dummy);
+                alert('🎉 資料已成功複製到剪貼簿！可貼到 LINE 或備忘錄存起來。');
+            };
+
             const getStats = () => {
                 const expenses = data.expenses || [];
-                const monthlyData = {};
-                const yearlyData = {};
+                const monthlyData = {}; const yearlyData = {};
+                const currentCats = data.categories || DEFAULT_CATEGORIES;
 
                 expenses.forEach(exp => {
                     if(!exp.date) return;
                     const dateParts = exp.date.split(/[/-]/);
                     if (dateParts.length < 3) return;
-                    const y = dateParts[0];
-                    const m = dateParts[1];
-                    const yKey = y + '年';
-                    const mKey = y + '年 ' + m + '月';
+                    const y = dateParts[0]; const m = dateParts[1];
+                    const yKey = y + '年'; const mKey = y + '年 ' + m + '月';
 
-                    if(!monthlyData[mKey]) monthlyData[mKey] = { total: 0, items: [], categories: { food: 0, shopping: 0, transport: 0, life: 0, other: 0 } };
+                    if(!monthlyData[mKey]) monthlyData[mKey] = { total: 0, items: [], categories: {} };
                     monthlyData[mKey].total += exp.amount;
                     monthlyData[mKey].items.push(exp);
-                    
-                    if (monthlyData[mKey].categories[exp.category] !== undefined) {
-                        monthlyData[mKey].categories[exp.category] += exp.amount;
-                    }
+                    monthlyData[mKey].categories[exp.category] = (monthlyData[mKey].categories[exp.category] || 0) + exp.amount;
                     yearlyData[yKey] = (yearlyData[yKey] || 0) + exp.amount;
                 });
 
@@ -343,9 +372,8 @@
                     const catStats = Object.keys(md.categories).map(k => {
                         const amount = md.categories[k];
                         const percent = md.total === 0 ? 0 : Math.round((amount / md.total) * 100);
-                        const label = CATEGORY_CONFIG[k] ? CATEGORY_CONFIG[k].label : '未分類';
-                        const color = CATEGORY_CONFIG[k] ? CATEGORY_CONFIG[k].color : '#999';
-                        return { key: k, amount: amount, percent: percent, label: label, color: color };
+                        const catObj = currentCats.find(c => c.id === k); // 對應顏色與名稱
+                        return { key: k, amount: amount, percent: percent, label: catObj ? catObj.label : '未分類', color: catObj ? catObj.color : '#999' };
                     }).filter(c => c.amount > 0).sort((a,b) => b.amount - a.amount);
                     return { month: month, total: md.total, items: md.items, categories: catStats };
                 });
@@ -356,9 +384,7 @@
 
             const statsData = getStats();
             useEffect(() => {
-                if (statsData.monthly && statsData.monthly.length > 0 && !expandedMonth) {
-                    setExpandedMonth(statsData.monthly[0].month);
-                }
+                if (statsData.monthly && statsData.monthly.length > 0 && !expandedMonth) setExpandedMonth(statsData.monthly[0].month);
             }, [statsData]);
 
             // --- 各頁籤畫面渲染 ---
@@ -366,7 +392,7 @@
             const renderHeader = () => {
                 const safeLevel = data.player && data.player.level ? data.player.level : 1;
                 const titleInfo = getPiggyTitleInfo(safeLevel);
-                const percent = (data.player.maxExp > 0) ? (data.player.exp / data.player.maxExp) * 100 : 0;
+                const percent = (data.player && data.player.maxExp > 0) ? (data.player.exp / data.player.maxExp) * 100 : 0;
                 return (
                     <div className="flex justify-between items-center px-2 mb-4">
                         <div className="flex items-center space-x-3">
@@ -376,6 +402,9 @@
                                 <div className="w-24 mt-1"><div className="exp-bar"><div className="exp-fill" style={{ width: percent + '%' }}></div></div></div>
                             </div>
                         </div>
+                        <button onClick={() => setShowRecoveryCenter(true)} className="text-xs bg-red-100 text-red-700 px-3 py-1.5 rounded-xl font-black">
+                            🔧 救援中心
+                        </button>
                     </div>
                 );
             };
@@ -408,17 +437,15 @@
                 );
             };
 
-            // 固定支出：九宮格方塊設計
             const renderBillsView = () => (
                 <div className="space-y-4 fade-in mt-2 pb-24">
                     {renderHeader()}
                     <div className="bento-card border border-amber-200 bg-[#FFFCF5]">
                         <div className="flex justify-between items-center mb-4">
                             <h3 className="font-black text-lg flex items-center text-amber-900"><span className="text-2xl mr-2">📡</span> 固定支出雷達</h3>
-                            <button onClick={() => { setEditingBillId(null); setNewItemName(''); setNewItemCost(''); setNewItemNote(''); setActionSheet('editBills'); }} className="text-xs bg-amber-100 text-amber-800 px-3 py-1.5 rounded-xl font-black">⚙️ 編輯項目</button>
+                            <button onClick={() => { setEditingBillId(null); setNewItemName(''); setNewItemCost(''); setNewItemNote(''); setActionSheet('editBills'); }} className="text-xs bg-amber-100 text-amber-800 px-3 py-1.5 rounded-xl font-black">⚙️ 編輯雷達</button>
                         </div>
                         <p className="text-xs text-amber-700 font-bold mb-4 bg-amber-100/50 p-2 rounded-lg">點擊方塊內的打勾作「已付紀錄」，不扣除資產喔！</p>
-                        
                         <div className="grid grid-cols-3 gap-3 max-h-[60vh] overflow-y-auto pr-1 pb-4">
                             {(data.bills || []).length === 0 && <p className="col-span-3 text-sm text-center text-[var(--text-muted)] font-bold py-8">目前沒有固定支出項目</p>}
                             {(data.bills || []).map((bill) => (
@@ -440,12 +467,12 @@
                 </div>
             );
 
-            // 每日花費：加入備註輸入框
             const renderExpenseView = () => {
                 const goalsArr = data.customGoals || [];
                 const goal = goalsArr.length > 0 ? goalsArr[0] : { name: '存錢目標', target: 100000, current: 0 };
                 const percent = goal.target > 0 ? Math.min(100, Math.floor((goal.current / goal.target) * 100)) : 0;
                 const quickTagsArr = data.quickTags || [];
+                const catArr = data.categories || DEFAULT_CATEGORIES; // 讀取自訂分類
                 
                 return (
                     <div className="space-y-4 fade-in mt-2 pb-32">
@@ -479,7 +506,7 @@
 
                         <div className="bento-card">
                             <div className="flex justify-between items-center mb-4">
-                                <h3 className="font-black text-lg flex items-center"><span className="text-2xl mr-2">💸</span> 快速記開銷</h3>
+                                <h3 className="font-black text-lg flex items-center"><span className="text-2xl mr-2">💸</span> 快速記筆開銷</h3>
                                 <button onClick={() => setShowEditTags(!showEditTags)} className="text-xs font-bold text-gray-500 bg-gray-100 px-3 py-1.5 rounded-lg active:scale-95">{showEditTags ? '完成' : '⚙️ 編輯標籤'}</button>
                             </div>
 
@@ -508,17 +535,27 @@
 
                             <div className="space-y-3">
                                 <div className="flex space-x-2">
-                                    <select value={expenseCategory} onChange={e=>setExpenseCategory(e.target.value)} className="input-eco bg-white px-2 w-[35%] text-sm">
-                                        <option value="food">🍔 餐飲</option><option value="shopping">🛍️ 購物</option><option value="transport">🚗 交通</option><option value="life">🏠 生活</option><option value="other">📦 其他</option>
+                                    {/* ★ 左側下拉選單：加入自訂分類與編輯入口 */}
+                                    <select 
+                                        value={expenseCategory} 
+                                        onChange={e => {
+                                            if (e.target.value === 'EDIT_CAT') {
+                                                setActionSheet('editCategories');
+                                                setExpenseCategory(catArr[0].id); // 復原選單顯示
+                                            } else {
+                                                setExpenseCategory(e.target.value);
+                                            }
+                                        }} 
+                                        className="input-eco bg-white px-2 w-[40%] text-sm"
+                                    >
+                                        {catArr.map(c => <option key={c.id} value={c.id}>{c.label}</option>)}
+                                        <option value="EDIT_CAT">⚙️ 編輯分類...</option>
                                     </select>
                                     <input type="text" value={expenseTitle} onChange={e=>setExpenseTitle(e.target.value)} placeholder="項目名稱" className="input-eco bg-white flex-1 text-sm font-black" />
                                 </div>
-                                
-                                {/* 備註細項輸入框 */}
                                 <div>
-                                    <input type="text" value={expenseNote} onChange={e=>setExpenseNote(e.target.value)} placeholder="備註細項 (可填寫具體物品：如奶嘴)" className="input-eco bg-white text-sm" />
+                                    <input type="text" value={expenseNote} onChange={e=>setExpenseNote(e.target.value)} placeholder="備註細項 (例如：奶嘴、濕紙巾)" className="input-eco bg-white text-sm" />
                                 </div>
-
                                 <input type="number" value={expenseAmount} onChange={e=>setExpenseAmount(e.target.value)} placeholder="花費金額 ($)" className="input-eco bg-white text-xl font-black text-amber-700" />
                                 <button onClick={handleRecordExpense} className="w-full bg-[var(--text-dark)] text-white font-black py-4 rounded-2xl active:scale-[0.98] transition-transform shadow-md mt-2">確認紀錄 (+10 經驗值)</button>
                             </div>
@@ -539,6 +576,7 @@
                                 <button onClick={() => { setEditGoalName(''); setEditGoalTarget(''); setEditGoalCurrent(''); setEditingGoalId(null); setActionSheet('editGoal'); }} className="text-xs bg-green-100 text-green-800 px-3 py-1.5 rounded-xl font-black">+ 新增目標</button>
                             </div>
                             <div className="space-y-4">
+                                {goalsArr.length === 0 && <p className="text-sm text-center text-green-700/50 font-bold py-6">目前沒有儲蓄目標喔</p>}
                                 {goalsArr.map(goal => {
                                     const percent = goal.target > 0 ? Math.min(100, Math.floor((goal.current / goal.target) * 100)) : 0;
                                     return (
@@ -575,9 +613,9 @@
                 );
             };
 
-            // 歷史明細大彈窗：包含備註顯示
             const renderStatsModal = () => {
                 if (!showStatsModal) return null;
+                const catArr = data.categories || DEFAULT_CATEGORIES;
                 return (
                     <div className="fixed inset-0 z-[110] bg-black/60 backdrop-blur-sm flex flex-col justify-end fade-in">
                         <div className="flex-1" onClick={() => setShowStatsModal(false)}></div>
@@ -604,22 +642,25 @@
                                         </div>
 
                                         <div className="space-y-2">
-                                            {stat.items.map(item => (
-                                                <div key={item.id} className="flex justify-between items-center bg-[#F4F5F3] p-3 rounded-2xl">
-                                                    <div className="flex flex-col">
-                                                        <span className="font-bold text-sm text-[var(--text-dark)]">
-                                                            {item.title} 
-                                                            {/* 顯示歷史明細的備註 */}
-                                                            {item.note && <span className="text-xs font-normal text-gray-500 ml-1">({item.note})</span>}
-                                                        </span>
-                                                        <span className="text-[10px] text-gray-400 mt-0.5">{item.date} · {CATEGORY_CONFIG[item.category] ? CATEGORY_CONFIG[item.category].label : '未分類'}</span>
+                                            {stat.items.map(item => {
+                                                const cObj = catArr.find(c => c.id === item.category);
+                                                const catLabel = cObj ? cObj.label : '未分類';
+                                                return (
+                                                    <div key={item.id} className="flex justify-between items-center bg-[#F4F5F3] p-3 rounded-2xl">
+                                                        <div className="flex flex-col">
+                                                            <span className="font-bold text-sm text-[var(--text-dark)]">
+                                                                {item.title} 
+                                                                {item.note && <span className="text-xs font-normal text-gray-500 ml-1">({item.note})</span>}
+                                                            </span>
+                                                            <span className="text-[10px] text-gray-400 mt-0.5">{item.date} · {catLabel}</span>
+                                                        </div>
+                                                        <div className="flex items-center">
+                                                            <span className="font-black text-sm text-[var(--text-dark)]">${item.amount.toLocaleString()}</span>
+                                                            <button onClick={() => handleDeleteExpense(item.id, item.amount)} className="ml-3 text-xs text-red-500 font-bold bg-red-100 px-2 py-1 rounded-lg active:scale-95">刪除</button>
+                                                        </div>
                                                     </div>
-                                                    <div className="flex items-center">
-                                                        <span className="font-black text-sm text-[var(--text-dark)]">${item.amount.toLocaleString()}</span>
-                                                        <button onClick={() => handleDeleteExpense(item.id, item.amount)} className="ml-3 text-xs text-red-500 font-bold bg-red-100 px-2 py-1 rounded-lg active:scale-95">刪除</button>
-                                                    </div>
-                                                </div>
-                                            ))}
+                                                );
+                                            })}
                                         </div>
                                     </div>
                                 ))}
@@ -631,24 +672,45 @@
                 );
             };
 
-            const renderZineModal = () => {
-                if (!showZine) return null;
+            const renderRecoveryCenterModal = () => {
+                if (!showRecoveryCenter) return null;
+                const foundBackups = scanAllHistoricalBackups();
+
                 return (
-                    <div className="zine-modal flex flex-col z-[130]">
-                        <div className="zine-cover h-[60vh] relative flex flex-col justify-end p-8 text-white">
-                            <button onClick={() => setShowZine(false)} className="absolute top-10 right-6 w-10 h-10 bg-black/40 backdrop-blur-md rounded-full flex items-center justify-center font-black">X</button>
-                            <p className="text-sm font-bold tracking-widest mb-2 opacity-80">MONTHLY ZINE . PIGGY</p>
-                            <h1 className="text-5xl font-black leading-tight mb-4">本月<br/>生活與財務<br/>總結</h1>
-                        </div>
-                        <div className="p-8 space-y-8 bg-[#FAF8F5] -mt-10 rounded-t-[40px] relative z-10 flex-1">
-                            <div>
-                                <h3 className="text-xl font-black mb-3">情緒與消費</h3>
-                                <p className="text-sm leading-loose text-gray-600 font-bold">這個月你成功在「想要不等於需要」煞車了，省下了資金！<br/><br/>這些錢已經為你的【夢想金庫】注入了能量。你做得非常棒，豬豬。</p>
+                    <div className="fixed inset-0 z-[120] bg-black/70 backdrop-blur-md flex flex-col justify-end fade-in">
+                        <div className="flex-1" onClick={() => setShowRecoveryCenter(false)}></div>
+                        <div className="bg-[#FAF8F5] w-full rounded-t-[40px] p-6 max-h-[90vh] overflow-y-auto pb-safe flex flex-col">
+                            <div className="w-12 h-1.5 bg-gray-300 rounded-full mx-auto mb-6"></div>
+                            <div className="text-center mb-6">
+                                <span className="text-4xl">🔧</span>
+                                <h3 className="font-black text-2xl mt-2 text-red-900">資料備份與救援中心</h3>
+                                <p className="text-xs text-gray-500 mt-1 font-bold">歷史資料絕對沒有遺失，點擊還原即可找回！</p>
                             </div>
-                            <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100">
-                                <p className="text-sm font-black text-center italic text-[var(--text-dark)] leading-relaxed">「果斷捨棄不再需要的衝動，就是對未來自己最大的慷慨。」</p>
+
+                            <div className="mb-6">
+                                <h4 className="font-black text-sm text-gray-700 mb-3 flex items-center">1. 手機歷史資料庫</h4>
+                                <div className="space-y-3">
+                                    {foundBackups.length === 0 && <p className="text-xs text-center text-gray-400 font-bold py-4">未發現任何歷史金鑰。</p>}
+                                    {foundBackups.map(b => (
+                                        <div key={b.key} className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm flex flex-col justify-between">
+                                            <div>
+                                                <p className="font-black text-sm text-amber-800 text-xs">{b.key}</p>
+                                                <div className="flex justify-between mt-2 text-[10px] text-gray-500 font-bold">
+                                                    <span>記帳: {b.expensesCount} 筆</span><span>存錢: {b.savingsCount} 格</span>
+                                                </div>
+                                            </div>
+                                            <button onClick={() => handleRestoreFromKey(b.raw)} className="w-full bg-amber-500 text-white text-xs font-black py-2.5 rounded-xl mt-3 active:scale-95 transition-transform">還原並覆蓋目前資料</button>
+                                        </div>
+                                    ))}
+                                </div>
                             </div>
-                            <button onClick={() => {alert('已匯出精美長圖！'); setShowZine(false);}} className="w-full bg-[var(--text-dark)] text-white font-black py-4 rounded-2xl shadow-lg active:scale-95 transition-transform mb-8">📥 導出雜誌分享</button>
+
+                            <div className="bg-white p-4 rounded-3xl border border-gray-100 shadow-sm mb-6 space-y-3">
+                                <h4 className="font-black text-sm text-green-800">2. 文字手動備份</h4>
+                                <p className="text-xs text-gray-500 font-bold">建議複製所有資料存到 LINE 記事本！</p>
+                                <button onClick={handleExportText} className="w-full bg-[var(--green-deep)] text-white text-xs font-black py-3 rounded-xl active:scale-95 transition-transform">📥 點此複製整份資料</button>
+                            </div>
+                            <button onClick={() => setShowRecoveryCenter(false)} className="w-full bg-gray-200 text-gray-700 font-black py-4 rounded-2xl active:scale-95 shadow-sm">關閉救援中心</button>
                         </div>
                     </div>
                 );
@@ -656,11 +718,41 @@
 
             const renderEditOverlays = () => {
                 if (!actionSheet) return null;
+                const catArr = data.categories || DEFAULT_CATEGORIES;
                 return (
                     <div className="fixed inset-0 z-[60] flex flex-col justify-end bg-black/40 backdrop-blur-sm animate-in fade-in">
                         <div className="flex-1" onClick={() => { setActionSheet(null); setEditingBillId(null); setNewItemName(''); setNewItemCost(''); setNewItemNote(''); }} ></div>
                         <div className="bottom-sheet p-6 animate-in slide-in-from-bottom-full">
                             <div className="w-12 h-1.5 bg-[#E8EBE9] rounded-full mx-auto mb-6"></div>
+
+                            {/* ★ 新增的自訂分類選單 */}
+                            {actionSheet === 'editCategories' && (
+                                <div className="space-y-4 mb-4">
+                                    <h3 className="font-black text-xl mb-2">⚙️ 編輯支出分類</h3>
+                                    <p className="text-xs text-gray-500 font-bold mb-4">妳可以自己新增喜歡的分類標籤與顏色。</p>
+                                    
+                                    <div className="bg-[#F4F5F3] p-4 rounded-2xl mb-6 space-y-3">
+                                        <div className="flex space-x-2 items-center">
+                                            <input type="text" value={newCatLabel} onChange={e=>setNewCatLabel(e.target.value)} placeholder="新分類 (如: 👶 育兒)" className="input-eco bg-white flex-1" />
+                                            {/* HTML 原生顏色選擇器 */}
+                                            <input type="color" value={newCatColor} onChange={e=>setNewCatColor(e.target.value)} className="h-10 w-12 rounded border-none cursor-pointer p-0 bg-transparent" />
+                                        </div>
+                                        <button onClick={handleAddCategory} className="w-full bg-[var(--text-dark)] text-white font-bold py-3 rounded-xl mt-2">新增分類</button>
+                                    </div>
+                                    
+                                    <div className="space-y-2 max-h-60 overflow-y-auto pb-4">
+                                        {catArr.map((c) => (
+                                            <div key={c.id} className="flex justify-between items-center bg-white border border-[#E8EBE9] p-3 rounded-xl">
+                                                <div className="flex items-center space-x-3">
+                                                    <div style={{backgroundColor: c.color}} className="w-4 h-4 rounded-full"></div>
+                                                    <span className="font-bold text-sm text-[var(--text-dark)]">{c.label}</span>
+                                                </div>
+                                                <button onClick={() => handleDeleteCategory(c.id)} className="ml-2 text-xs text-[var(--red-soft)] font-bold bg-[#FFE8E8] px-3 py-1.5 rounded-lg active:scale-95">移除</button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
 
                             {actionSheet === 'editAssets' && (
                                 <div className="space-y-4 mb-4"><h3 className="font-black text-xl mb-2">💰 修改現有資產</h3><input type="number" value={editAssetsAmount} onChange={e=>setEditAssetsAmount(e.target.value)} className="input-eco mt-1 bg-white text-lg font-black" /><button onClick={handleUpdateAssets} className="w-full bg-[var(--text-dark)] text-white font-black py-4 rounded-2xl mt-4 active:scale-95 shadow-md">儲存更新</button></div>
@@ -699,13 +791,36 @@
                             {actionSheet === 'editWishes' && (
                                 <div>
                                     <div className="flex justify-between items-center mb-4"><h3 className="font-black text-lg">❄️ 停入慾望停車場</h3><button onClick={() => setActionSheet(null)} className="text-sm font-bold text-[var(--text-muted)]">完成</button></div>
-                                    <div className="bg-blue-50 p-4 rounded-2xl mb-6 space-y-3 border border-blue-100">
+                                    <div className="bg-blue-50 p-4 rounded-2xl mb-6 space-y-3">
                                         <input type="text" value={newItemName} onChange={e=>setNewItemName(e.target.value)} placeholder="想買什麼？" className="input-eco py-3 bg-white" />
                                         <input type="number" value={newItemCost} onChange={e=>setNewItemCost(e.target.value)} placeholder="金額 ($)" className="input-eco py-3 bg-white w-full" />
                                         <button onClick={handleAddWish} className="w-full bg-blue-600 text-white font-bold py-3 rounded-xl shadow-md">停入車位結凍</button>
                                     </div>
                                 </div>
                             )}
+                        </div>
+                    </div>
+                );
+            };
+
+            const renderZineModal = () => {
+                if (!showZine) return null;
+                return (
+                    <div className="zine-modal flex flex-col z-[130]">
+                        <div className="zine-cover h-[60vh] relative flex flex-col justify-end p-8 text-white">
+                            <button onClick={() => setShowZine(false)} className="absolute top-10 right-6 w-10 h-10 bg-black/40 backdrop-blur-md rounded-full flex items-center justify-center font-black">X</button>
+                            <p className="text-sm font-bold tracking-widest mb-2 opacity-80">MONTHLY ZINE . PIGGY</p>
+                            <h1 className="text-5xl font-black leading-tight mb-4">本月<br/>生活與財務<br/>總結</h1>
+                        </div>
+                        <div className="p-8 space-y-8 bg-[#FAF8F5] -mt-10 rounded-t-[40px] relative z-10 flex-1">
+                            <div>
+                                <h3 className="text-xl font-black mb-3">情緒與消費</h3>
+                                <p className="text-sm leading-loose text-gray-600 font-bold">這個月你成功在「想要不等於需要」煞車了，省下了資金！<br/><br/>這些錢已經為你的【夢想金庫】注入了能量。你做得非常棒，豬豬。</p>
+                            </div>
+                            <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100">
+                                <p className="text-sm font-black text-center italic text-[var(--text-dark)] leading-relaxed">「果斷捨棄不再需要的衝動，就是對未來自己最大的慷慨。」</p>
+                            </div>
+                            <button onClick={() => {alert('已匯出精美長圖！'); setShowZine(false);}} className="w-full bg-[var(--text-dark)] text-white font-black py-4 rounded-2xl shadow-lg active:scale-95 transition-transform mb-8">📥 導出雜誌分享</button>
                         </div>
                     </div>
                 );
@@ -720,24 +835,24 @@
                         {activeTab === 'home' && render365View()}
                         {activeTab === 'bills' && renderBillsView()}
                         {activeTab === 'expense' && renderExpenseView()}
-                        {activeTab === 'stats' && renderStatsView()}
                         {activeTab === 'future' && renderFutureView()}
                     </main>
 
                     <div className="fixed bottom-0 w-full z-40">
                         <nav className="bottom-nav pb-safe bg-white/95 backdrop-blur-md">
-                            <div className="max-w-md mx-auto flex justify-between items-center px-1 py-3">
-                                <button onClick={() => setActiveTab('home')} className={`flex flex-col items-center flex-1 transition-transform ${activeTab==='home'?'scale-110 text-[var(--text-dark)]':'text-[var(--text-muted)] opacity-60'}`}><span className="text-2xl mb-1">🏕️</span><span className="text-[10px] font-black tracking-tighter">365存錢</span></button>
-                                <button onClick={() => setActiveTab('bills')} className={`flex flex-col items-center flex-1 transition-transform ${activeTab==='bills'?'scale-110 text-[var(--text-dark)]':'text-[var(--text-muted)] opacity-60'}`}><span className="text-2xl mb-1">📡</span><span className="text-[10px] font-black tracking-tighter">固定支出</span></button>
-                                <button onClick={() => setActiveTab('expense')} className={`flex flex-col items-center flex-1 transition-transform ${activeTab==='expense'?'scale-110 text-[var(--text-dark)]':'text-[var(--text-muted)] opacity-60'}`}><span className="text-2xl mb-1">💸</span><span className="text-[10px] font-black tracking-tighter">每日花費</span></button>
-                                <button onClick={() => setActiveTab('stats')} className={`flex flex-col items-center flex-1 transition-transform ${activeTab==='stats'?'scale-110 text-[var(--text-dark)]':'text-[var(--text-muted)] opacity-60'}`}><span className="text-2xl mb-1">📈</span><span className="text-[10px] font-black tracking-tighter">支出統計</span></button>
-                                <button onClick={() => setActiveTab('future')} className={`flex flex-col items-center flex-1 transition-transform ${activeTab==='future'?'scale-110 text-[var(--text-dark)]':'text-[var(--text-muted)] opacity-60'}`}><span className="text-2xl mb-1">💌</span><span className="text-[10px] font-black tracking-tighter">儲蓄願望</span></button>
+                            <div className="max-w-md mx-auto flex justify-around items-center px-2 py-3">
+                                <button onClick={() => setActiveTab('home')} className={`flex flex-col items-center w-[25%] transition-transform ${activeTab==='home'?'scale-110 text-[var(--text-dark)]':'text-[var(--text-muted)] opacity-60'}`}><span className="text-2xl mb-1">🏕️</span><span className="text-[10px] font-black">365存錢</span></button>
+                                <button onClick={() => setActiveTab('bills')} className={`flex flex-col items-center w-[25%] transition-transform ${activeTab==='bills'?'scale-110 text-[var(--text-dark)]':'text-[var(--text-muted)] opacity-60'}`}><span className="text-2xl mb-1">📡</span><span className="text-[10px] font-black">固定支出</span></button>
+                                <button onClick={() => setActiveTab('expense')} className={`flex flex-col items-center w-[25%] transition-transform ${activeTab==='expense'?'scale-110 text-[var(--text-dark)]':'text-[var(--text-muted)] opacity-60'}`}><span className="text-2xl mb-1">💸</span><span className="text-[10px] font-black">每日花費</span></button>
+                                <button onClick={() => setActiveTab('future')} className={`flex flex-col items-center w-[25%] transition-transform ${activeTab==='future'?'scale-110 text-[var(--text-dark)]':'text-[var(--text-muted)] opacity-60'}`}><span className="text-2xl mb-1">💌</span><span className="text-[10px] font-black">儲蓄願望</span></button>
                             </div>
                         </nav>
                     </div>
 
                     {renderEditOverlays()}
                     {renderStatsModal()}
+                    {renderRecoveryCenterModal()}
+                    {renderZineModal()}
                 </div>
             );
         }

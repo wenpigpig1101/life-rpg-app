@@ -7,24 +7,10 @@
     
     <script src="https://cdn.tailwindcss.com"></script>
     
-    <!-- 使用全球最穩定 cdnjs (Cloudflare) 確保連線，解決台灣網路白屏問題 -->
+    <!-- 使用全球最穩定 cdnjs 確保載入，解決白屏問題 -->
     <script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
     <script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.6/babel.min.js"></script>
-
-    <script>
-        // 全域防崩潰捕捉
-        window.onerror = function(msg, url, lineNo, columnNo, error) {
-            document.getElementById('root').innerHTML = `
-                <div style="padding: 30px; text-align: center; color: #D98C8C;">
-                    <h2 style="font-size: 24px; font-weight: 900; margin-bottom: 10px;">⚠️ 系統重啟中</h2>
-                    <p style="font-size: 14px; font-weight: bold; margin-bottom: 20px;">正在嘗試修復資料快取...</p>
-                    <button onclick="localStorage.clear(); window.location.reload();" style="background: #D98C8C; color: white; padding: 15px 30px; border-radius: 15px; font-weight: 900; border: none;">點此重置快取並修復</button>
-                </div>
-            `;
-            return false;
-        };
-    </script>
 
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700;900&display=swap');
@@ -49,8 +35,6 @@
         
         .progress-track { height: 12px; background-color: #E8EBE9; border-radius: 999px; overflow: hidden; }
         .progress-fill { height: 100%; background: linear-gradient(90deg, var(--green-soft), var(--green-deep)); border-radius: 999px; transition: width 0.8s ease-out; }
-        .stat-bar { height: 100px; width: 10px; background-color: #E8EBE9; border-radius: 999px; position: relative; overflow: hidden; }
-        .stat-fill { width: 100%; position: absolute; bottom: 0; border-radius: 999px; transition: height 1s ease-out; }
 
         .tag-pill { display: inline-block; background-color: rgba(163, 184, 153, 0.2); color: var(--green-deep); padding: 8px 14px; border-radius: 12px; font-weight: bold; font-size: 13px; cursor: pointer; transition: 0.2s; box-shadow: 0 2px 4px rgba(0,0,0,0.02); border: 1px solid rgba(163,184,153,0.3); }
         .tag-pill:active { transform: scale(0.9); background-color: var(--green-soft); color: white; }
@@ -94,7 +78,7 @@
         <div style="padding: 40px 20px; text-align: center; color: #8A9A90;">
             <div style="font-size: 40px; margin-bottom: 20px; animation: pulse 1.5s infinite;">🐷</div>
             <h3 style="font-weight: 900;">連線載入中...</h3>
-            <p style="font-size: 12px; margin-top: 10px;">正在進行全自動檔案救援...</p>
+            <p style="font-size: 12px; margin-top: 10px;">正在讀取並恢復歷史資料...</p>
         </div>
     </div>
 
@@ -109,16 +93,9 @@
             other: { label: '📦 其他', color: '#FCD34D' }
         };
 
-        const getTodayPlusDays = (days) => {
-            const d = new Date();
-            d.setDate(d.getDate() + days);
-            return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
-        };
-
         const DEFAULT_STATE = {
             player: { level: 1, exp: 0, maxExp: 100 },
             assets: 152400, spent: 0, expenses: [], savings365: [], 
-            
             bills: [
                 { id: 'b1', name: '房租', amount: 15000, paid: false },
                 { id: 'b2', name: '婷', amount: 30000, paid: false },
@@ -140,12 +117,6 @@
                 { id: 'b18', name: 'Visa卡', amount: 0, paid: false },
                 { id: 'b19', name: '貨車保養', amount: 0, paid: false }
             ],
-            
-            subscriptions: [
-                { id: 's1', name: 'Netflix', amount: 390, cycle: 'monthly', nextDate: getTodayPlusDays(5), type: 'video' },
-                { id: 's2', name: 'Spotify', amount: 149, cycle: 'monthly', nextDate: getTodayPlusDays(12), type: 'video' }
-            ],
-
             quickTags: [
                 '成成的煙', '豬豬的煙', '成成的咖啡', '早餐', '午餐', '晚餐', '下午茶', '宵夜',
                 '奶粉', 'Bo弟奶粉', '尿布', 'Q尿布', 'Bo弟尿布', '保久乳', '羊奶', '乳酸菌、寶乖亞',
@@ -165,65 +136,55 @@
         };
 
         function App() {
-            // ★ 全自動跨版本檔案救援系統：依序檢查並融合所有新舊儲存區
+            // ★ 安全資料救援：優先讀取最原始的 piggy_life_data_v3，確保歷史資料回歸
             const [data, setData] = useState(() => {
                 let parsed = DEFAULT_STATE;
                 const storageKeys = [
-                    'piggy_life_data_v3',       // 最老最完整的黃金備份庫 (你幾個月來的資料都在這)
-                    'piggy_lifeos_stable_v6',
-                    'piggy_lifeos_stable_v7',
-                    'piggy_lifeos_v8_subs',
+                    'piggy_active_v11',
+                    'piggy_lifeos_v10_final',
                     'piggy_lifeos_v9_grid',
-                    'piggy_lifeos_v10_final'
+                    'piggy_lifeos_stable_v7',
+                    'piggy_life_data_v3' // 最原始的神聖金鑰
                 ];
                 
-                // 依序搜尋含有資料的儲存區
                 for (let i = 0; i < storageKeys.length; i++) {
                     const saved = localStorage.getItem(storageKeys[i]);
                     if (saved) {
                         try {
                             const temp = JSON.parse(saved);
-                            // 判斷含有主要內容才進行遷移
                             if (temp && (Array.isArray(temp.expenses) || Array.isArray(temp.bills))) {
                                 parsed = {
                                     ...DEFAULT_STATE,
                                     ...temp,
-                                    // 確保子陣列型態正確
                                     expenses: Array.isArray(temp.expenses) ? temp.expenses : [],
                                     savings365: Array.isArray(temp.savings365) ? temp.savings365 : [],
                                     bills: Array.isArray(temp.bills) ? temp.bills : DEFAULT_STATE.bills,
-                                    subscriptions: Array.isArray(temp.subscriptions) ? temp.subscriptions : DEFAULT_STATE.subscriptions
+                                    quickTags: Array.isArray(temp.quickTags) ? temp.quickTags : DEFAULT_STATE.quickTags,
+                                    customGoals: Array.isArray(temp.customGoals) && temp.customGoals.length > 0 ? temp.customGoals : DEFAULT_STATE.customGoals
                                 };
-                                console.log(`[LifeOS] 成功自 ${storageKeys[i]} 讀取並融合資料！`);
-                                break;
+                                break; // 找到第一個有資料的就停止
                             }
-                        } catch(err) {
-                            console.error(`讀取金鑰 ${storageKeys[i]} 失敗`, err);
-                        }
+                        } catch(err) {}
                     }
                 }
                 return parsed;
             });
 
-            // 存檔時同時寫入所有關鍵鑰匙，確保以後絕對不會再因為換版本而遺失
+            // 存檔時，同步存回原本的 key 確保資料安全
             useEffect(() => {
-                const keys = ['piggy_life_data_v3', 'piggy_lifeos_stable_v7', 'piggy_lifeos_v10_final'];
-                keys.forEach(k => {
-                    try {
-                        localStorage.setItem(k, JSON.stringify(data));
-                    } catch(e) {}
-                });
+                localStorage.setItem('piggy_life_data_v3', JSON.stringify(data));
+                localStorage.setItem('piggy_active_v11', JSON.stringify(data));
             }, [data]);
 
+            // 恢復為最乾淨的 5 個頁籤
             const [activeTab, setActiveTab] = useState('home'); 
             const [toastMsg, setToastMsg] = useState(null);
             
-            const [aiFeedback, setAiFeedback] = useState(null); // AI 分析視窗
-            const [showStatsModal, setShowStatsModal] = useState(false); // 控制統計歷史明細彈窗
+            const [showStatsModal, setShowStatsModal] = useState(false); 
 
             // 快速記帳表單
             const [expenseTitle, setExpenseTitle] = useState('');
-            const [expenseNote, setExpenseNote] = useState(''); // 新增：備註輸入
+            const [expenseNote, setExpenseNote] = useState(''); // ★ 新增：備註輸入框
             const [expenseAmount, setExpenseAmount] = useState('');
             const [expenseCategory, setExpenseCategory] = useState('food');
             
@@ -242,7 +203,6 @@
             const [newItemCost, setNewItemCost] = useState('');
             const [newItemNote, setNewItemNote] = useState('');
             const [editingBillId, setEditingBillId] = useState(null); 
-            const [newItemCycle, setNewItemCycle] = useState('monthly'); 
             
             const [showZine, setShowZine] = useState(false);
             const [animatingWishId, setAnimatingWishId] = useState(null);
@@ -264,23 +224,6 @@
                 });
             };
 
-            const handleAIAnalysis = (sub) => {
-                const name = sub.name.toLowerCase();
-                let analysis = "【穩定使用中】📊 該服務的扣款與使用頻率皆符合你的日常節奏，繼續保持良好的數位生活管理吧！";
-                if (name.includes('netflix') || name.includes('disney') || name.includes('spotify') || sub.type === 'video') {
-                    analysis = "【觀看/聆聽時數偏低】🤖 根據大數據分析，你本月使用此服務不到 8 小時。建議若下個月仍無追劇計畫，可暫時取消訂閱以節省開支！";
-                }
-                setAiFeedback({ name: sub.name, text: analysis });
-            };
-
-            const getDaysDifference = (targetDate) => {
-                const today = new Date();
-                today.setHours(0,0,0,0);
-                const target = new Date(targetDate);
-                return Math.ceil((target - today) / (1000 * 60 * 60 * 24));
-            };
-
-            // --- 核心記帳與存錢 ---
             const toggleSaving365 = (dayAmount) => {
                 setData(p => {
                     const savingsArr = p.savings365 || [];
@@ -301,7 +244,7 @@
                     return { ...p, assets: p.assets - amount, spent: p.spent + amount, expenses: [newExpense, ...(p.expenses || [])] };
                 });
                 gainRewards(10); showToast(`💸 已紀錄：${expenseTitle} $${amount}`);
-                setExpenseTitle(''); setExpenseAmount(''); setExpenseNote('');
+                setExpenseTitle(''); setExpenseAmount(''); setExpenseNote(''); // 儲存後清空備註
             };
 
             const handleDeleteExpense = (id, amount) => {
@@ -371,20 +314,6 @@
                 setNewItemName(''); setNewItemCost(''); showToast('❄️ 已停入慾望停車場');
             };
 
-            const handleSaveSub = () => {
-                if(!newItemName) return;
-                const amount = parseInt(newItemCost) || 0;
-                setData(p => {
-                    const newSub = { id: Date.now().toString(), name: newItemName, amount: amount, cycle: newItemCycle, nextDate: getTodayPlusDays(parseInt(newItemNote)||30), type: 'other' };
-                    return { ...p, subscriptions: [...(p.subscriptions||[]), newSub] };
-                });
-                setNewItemName(''); setNewItemCost(''); setNewItemNote(''); setActionSheet(null); showToast('☁️ 已新增訂閱服務');
-            };
-
-            const handleDeleteSub = (id) => {
-                setData(p => ({ ...p, subscriptions: (p.subscriptions || []).filter(s => s.id !== id) }));
-            };
-
             const getStats = () => {
                 const expenses = data.expenses || [];
                 const monthlyData = {};
@@ -434,6 +363,23 @@
 
             // --- 各頁籤畫面渲染 ---
 
+            const renderHeader = () => {
+                const safeLevel = data.player && data.player.level ? data.player.level : 1;
+                const titleInfo = getPiggyTitleInfo(safeLevel);
+                const percent = (data.player.maxExp > 0) ? (data.player.exp / data.player.maxExp) * 100 : 0;
+                return (
+                    <div className="flex justify-between items-center px-2 mb-4">
+                        <div className="flex items-center space-x-3">
+                            <div className="w-14 h-14 bg-white rounded-3xl shadow-sm flex items-center justify-center text-3xl border border-[#E8EBE9]">🐷</div>
+                            <div>
+                                <h1 className="text-xl font-black text-[var(--text-dark)] flex items-center">Lv.{safeLevel} {titleInfo.title} <span className="ml-1 text-sm">{titleInfo.icon}</span></h1>
+                                <div className="w-24 mt-1"><div className="exp-bar"><div className="exp-fill" style={{ width: percent + '%' }}></div></div></div>
+                            </div>
+                        </div>
+                    </div>
+                );
+            };
+
             const render365View = () => {
                 const savingsArr = data.savings365 || [];
                 const total365 = savingsArr.reduce((sum, val) => sum + val, 0);
@@ -462,6 +408,7 @@
                 );
             };
 
+            // 固定支出：九宮格方塊設計
             const renderBillsView = () => (
                 <div className="space-y-4 fade-in mt-2 pb-24">
                     {renderHeader()}
@@ -471,6 +418,7 @@
                             <button onClick={() => { setEditingBillId(null); setNewItemName(''); setNewItemCost(''); setNewItemNote(''); setActionSheet('editBills'); }} className="text-xs bg-amber-100 text-amber-800 px-3 py-1.5 rounded-xl font-black">⚙️ 編輯項目</button>
                         </div>
                         <p className="text-xs text-amber-700 font-bold mb-4 bg-amber-100/50 p-2 rounded-lg">點擊方塊內的打勾作「已付紀錄」，不扣除資產喔！</p>
+                        
                         <div className="grid grid-cols-3 gap-3 max-h-[60vh] overflow-y-auto pr-1 pb-4">
                             {(data.bills || []).length === 0 && <p className="col-span-3 text-sm text-center text-[var(--text-muted)] font-bold py-8">目前沒有固定支出項目</p>}
                             {(data.bills || []).map((bill) => (
@@ -492,70 +440,7 @@
                 </div>
             );
 
-            const renderSubsView = () => {
-                const subsArr = data.subscriptions || [];
-                let monthlyTotal = 0;
-                let yearlyTotal = 0;
-                subsArr.forEach(s => {
-                    if (s.cycle === 'monthly') { monthlyTotal += s.amount; yearlyTotal += (s.amount * 12); }
-                    else if (s.cycle === 'yearly') { yearlyTotal += s.amount; monthlyTotal += Math.round(s.amount / 12); }
-                });
-
-                return (
-                    <div className="space-y-4 fade-in mt-2 pb-32">
-                        {renderHeader()}
-                        <div className="bg-[#2D3748] p-6 rounded-3xl text-white shadow-lg relative overflow-hidden">
-                            <div className="absolute top-[-20px] right-[-20px] text-8xl opacity-10">☁️</div>
-                            <p className="text-xs font-bold text-gray-400 mb-1">訂閱制總花費換算</p>
-                            <div className="flex items-baseline space-x-2 mb-4">
-                                <h3 className="font-black text-4xl">${monthlyTotal.toLocaleString()}</h3>
-                                <span className="text-sm font-bold text-gray-400">/ 月</span>
-                            </div>
-                            <div className="bg-white/10 p-3 rounded-2xl flex justify-between items-center backdrop-blur-sm">
-                                <span className="text-xs font-bold">相當於每年燃燒</span>
-                                <span className="font-black text-amber-300">${yearlyTotal.toLocaleString()}</span>
-                            </div>
-                        </div>
-
-                        <div className="bento-card">
-                            <div className="flex justify-between items-center mb-6">
-                                <h3 className="font-black text-lg flex items-center"><span className="text-2xl mr-2">☁️</span> 訂閱服務清單</h3>
-                                <button onClick={() => setActionSheet('addSubs')} className="text-xs bg-gray-100 px-3 py-1.5 rounded-xl font-bold">➕ 新增</button>
-                            </div>
-                            <div className="space-y-4">
-                                {subsArr.length === 0 && <p className="text-xs text-center text-gray-400 py-4 font-bold">恭喜！目前沒有被訂閱怪獸綁架。</p>}
-                                {subsArr.map(sub => {
-                                    const daysLeft = getDaysDifference(sub.nextDate);
-                                    const isUrgent = daysLeft >= 0 && daysLeft <= 3;
-                                    return (
-                                        <div key={sub.id} className={`p-4 rounded-2xl border-2 transition-all ${isUrgent ? 'border-red-300 bg-red-50' : 'border-gray-100 bg-white'}`}>
-                                            <div className="flex justify-between items-start mb-3">
-                                                <div>
-                                                    <h4 className="font-bold text-[var(--text-dark)]">{sub.name}</h4>
-                                                    <p className="text-[10px] font-bold mt-1 text-gray-500">{sub.cycle === 'monthly' ? '月繳' : '年繳'} · 下次扣款: {sub.nextDate}</p>
-                                                </div>
-                                                <div className="text-right"><span className="font-black text-lg">${sub.amount}</span></div>
-                                            </div>
-                                            <div className="flex justify-between items-center mt-2">
-                                                <div className="flex flex-col">
-                                                    {isUrgent ? (
-                                                        <span className="text-[10px] font-black text-red-600 bg-red-100 px-2 py-1 rounded-md animate-pulse mb-1">⚠️ {daysLeft === 0 ? '今日扣款！' : `剩餘 ${daysLeft} 天扣款`}</span>
-                                                    ) : (
-                                                        <span className="text-[10px] font-bold text-gray-400 mb-1">{daysLeft < 0 ? '已過期' : `約 ${daysLeft} 天後扣款`}</span>
-                                                    )}
-                                                    <button onClick={() => handleDeleteSub(sub.id)} className="text-[10px] text-gray-400 underline text-left">刪除</button>
-                                                </div>
-                                                <button onClick={() => handleAIAnalysis(sub)} className="text-xs font-black bg-gradient-to-r from-purple-500 to-indigo-500 text-white px-3 py-1.5 rounded-lg shadow-md active:scale-95">✨ AI 分析</button>
-                                            </div>
-                                        </div>
-                                    )
-                                })}
-                            </div>
-                        </div>
-                    </div>
-                );
-            };
-
+            // 每日花費：加入備註輸入框
             const renderExpenseView = () => {
                 const goalsArr = data.customGoals || [];
                 const goal = goalsArr.length > 0 ? goalsArr[0] : { name: '存錢目標', target: 100000, current: 0 };
@@ -584,7 +469,7 @@
                                 <p className="font-black text-2xl text-[var(--green-deep)]">${(data.assets || 0).toLocaleString()}</p>
                             </div>
                             <div className="bg-white p-5 rounded-3xl border border-gray-100 shadow-sm relative flex justify-between items-center">
-                                <div className="cursor-pointer" onClick={() => setShowStatsModal(true)}>
+                                <div className="cursor-pointer flex-1" onClick={() => setShowStatsModal(true)}>
                                     <p className="text-xs font-bold text-[var(--text-muted)] mb-1">本月累計支出 📈</p>
                                     <p className="font-black text-2xl text-[var(--brown-dirt)]">${(data.spent || 0).toLocaleString()}</p>
                                 </div>
@@ -629,9 +514,9 @@
                                     <input type="text" value={expenseTitle} onChange={e=>setExpenseTitle(e.target.value)} placeholder="項目名稱" className="input-eco bg-white flex-1 text-sm font-black" />
                                 </div>
                                 
-                                {/* 根據最新要求：加入可自訂產品內容的備註選項 */}
+                                {/* 備註細項輸入框 */}
                                 <div>
-                                    <input type="text" value={expenseNote} onChange={e=>setExpenseNote(e.target.value)} placeholder="備註細項 (例如填寫：奶嘴、奶粉、澎湖行程)" className="input-eco bg-white text-sm" />
+                                    <input type="text" value={expenseNote} onChange={e=>setExpenseNote(e.target.value)} placeholder="備註細項 (可填寫具體物品：如奶嘴)" className="input-eco bg-white text-sm" />
                                 </div>
 
                                 <input type="number" value={expenseAmount} onChange={e=>setExpenseAmount(e.target.value)} placeholder="花費金額 ($)" className="input-eco bg-white text-xl font-black text-amber-700" />
@@ -690,22 +575,7 @@
                 );
             };
 
-            // AI 分析視窗
-            const renderAiModal = () => {
-                if (!aiFeedback) return null;
-                return (
-                    <div className="fixed inset-0 z-[120] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 fade-in">
-                        <div className="bg-white rounded-3xl p-6 shadow-2xl w-full max-w-sm relative">
-                            <button onClick={() => setAiFeedback(null)} className="absolute top-4 right-4 w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center font-bold text-gray-500">✕</button>
-                            <div className="text-center mb-4"><span className="text-5xl">✨</span><h3 className="font-black text-xl mt-2 text-indigo-900">AI 訂閱分析</h3><p className="text-sm font-bold text-gray-400">{aiFeedback.name}</p></div>
-                            <div className="bg-indigo-50 border border-indigo-100 p-4 rounded-2xl text-sm font-bold leading-relaxed text-indigo-800">{aiFeedback.text}</div>
-                            <button onClick={() => setAiFeedback(null)} className="w-full bg-indigo-600 text-white font-black py-3 rounded-xl mt-6 shadow-lg active:scale-95">了解，感謝建議</button>
-                        </div>
-                    </div>
-                )
-            };
-
-            // 歷史明細大彈窗 (取代原本擁擠的第六頁籤，在這裡開，讓妳隨時可以進來刪除錯帳)
+            // 歷史明細大彈窗：包含備註顯示
             const renderStatsModal = () => {
                 if (!showStatsModal) return null;
                 return (
@@ -727,20 +597,19 @@
                                             <span className="font-black text-xl text-[var(--brown-dirt)]">${stat.total.toLocaleString()}</span>
                                         </div>
                                         
-                                        {/* 分類長條比例 */}
                                         <div className="flex space-x-1.5 h-3 rounded-full overflow-hidden bg-gray-100 mb-4">
                                             {stat.categories.map((cat, idx) => (
                                                 <div key={idx} style={{ width: cat.percent + '%', backgroundColor: cat.color }} title={`${cat.label} ${cat.percent}%`}></div>
                                             ))}
                                         </div>
 
-                                        {/* 支出明細 (含自訂備註說明) */}
                                         <div className="space-y-2">
                                             {stat.items.map(item => (
                                                 <div key={item.id} className="flex justify-between items-center bg-[#F4F5F3] p-3 rounded-2xl">
                                                     <div className="flex flex-col">
                                                         <span className="font-bold text-sm text-[var(--text-dark)]">
                                                             {item.title} 
+                                                            {/* 顯示歷史明細的備註 */}
                                                             {item.note && <span className="text-xs font-normal text-gray-500 ml-1">({item.note})</span>}
                                                         </span>
                                                         <span className="text-[10px] text-gray-400 mt-0.5">{item.date} · {CATEGORY_CONFIG[item.category] ? CATEGORY_CONFIG[item.category].label : '未分類'}</span>
@@ -793,19 +662,6 @@
                         <div className="bottom-sheet p-6 animate-in slide-in-from-bottom-full">
                             <div className="w-12 h-1.5 bg-[#E8EBE9] rounded-full mx-auto mb-6"></div>
 
-                            {actionSheet === 'addSubs' && (
-                                <div className="space-y-4 mb-4">
-                                    <h3 className="font-black text-xl mb-2 text-indigo-800">☁️ 新增訂閱服務</h3>
-                                    <div><input type="text" value={newItemName} onChange={e=>setNewItemName(e.target.value)} className="input-eco mt-1 bg-white" placeholder="服務名稱 (例如：Netflix)" /></div>
-                                    <div className="flex space-x-2">
-                                        <select value={newItemCycle} onChange={e=>setNewItemCycle(e.target.value)} className="input-eco mt-1 bg-white w-1/3 px-2 text-sm"><option value="monthly">月繳</option><option value="yearly">年繳</option></select>
-                                        <input type="number" value={newItemCost} onChange={e=>setNewItemCost(e.target.value)} className="input-eco mt-1 bg-white flex-1" placeholder="扣款金額 ($)" />
-                                    </div>
-                                    <div><input type="number" value={newItemNote} onChange={e=>setNewItemNote(e.target.value)} className="input-eco mt-1 bg-white" placeholder="大約幾天後扣款？(例如: 15)" /></div>
-                                    <button onClick={handleSaveSub} className="w-full bg-indigo-600 text-white font-black py-4 rounded-2xl mt-4 active:scale-[0.98] shadow-md">新增訂閱</button>
-                                </div>
-                            )}
-
                             {actionSheet === 'editAssets' && (
                                 <div className="space-y-4 mb-4"><h3 className="font-black text-xl mb-2">💰 修改現有資產</h3><input type="number" value={editAssetsAmount} onChange={e=>setEditAssetsAmount(e.target.value)} className="input-eco mt-1 bg-white text-lg font-black" /><button onClick={handleUpdateAssets} className="w-full bg-[var(--text-dark)] text-white font-black py-4 rounded-2xl mt-4 active:scale-95 shadow-md">儲存更新</button></div>
                             )}
@@ -843,7 +699,7 @@
                             {actionSheet === 'editWishes' && (
                                 <div>
                                     <div className="flex justify-between items-center mb-4"><h3 className="font-black text-lg">❄️ 停入慾望停車場</h3><button onClick={() => setActionSheet(null)} className="text-sm font-bold text-[var(--text-muted)]">完成</button></div>
-                                    <div className="bg-blue-50 p-4 rounded-2xl mb-6 space-y-3">
+                                    <div className="bg-blue-50 p-4 rounded-2xl mb-6 space-y-3 border border-blue-100">
                                         <input type="text" value={newItemName} onChange={e=>setNewItemName(e.target.value)} placeholder="想買什麼？" className="input-eco py-3 bg-white" />
                                         <input type="number" value={newItemCost} onChange={e=>setNewItemCost(e.target.value)} placeholder="金額 ($)" className="input-eco py-3 bg-white w-full" />
                                         <button onClick={handleAddWish} className="w-full bg-blue-600 text-white font-bold py-3 rounded-xl shadow-md">停入車位結凍</button>
@@ -855,6 +711,7 @@
                 );
             };
 
+            // 五大底部導覽列
             return (
                 <div className="min-h-screen relative bg-[var(--bg-cream)]">
                     {toastMsg && <div className="toast">{toastMsg}</div>}
@@ -862,36 +719,31 @@
                     <main className="max-w-md mx-auto pb-24">
                         {activeTab === 'home' && render365View()}
                         {activeTab === 'bills' && renderBillsView()}
-                        {activeTab === 'subs' && renderSubsView()}
                         {activeTab === 'expense' && renderExpenseView()}
+                        {activeTab === 'stats' && renderStatsView()}
                         {activeTab === 'future' && renderFutureView()}
                     </main>
 
                     <div className="fixed bottom-0 w-full z-40">
                         <nav className="bottom-nav pb-safe bg-white/95 backdrop-blur-md">
                             <div className="max-w-md mx-auto flex justify-between items-center px-1 py-3">
-                                <button onClick={() => setActiveTab('home')} className={`flex flex-col items-center flex-1 transition-transform ${activeTab==='home'?'scale-110 text-[var(--text-dark)]':'text-[var(--text-muted)] opacity-60'}`}><span className="text-xl mb-1">🏕️</span><span className="text-[9px] font-black tracking-tighter">365存錢</span></button>
-                                <button onClick={() => setActiveTab('bills')} className={`flex flex-col items-center flex-1 transition-transform ${activeTab==='bills'?'scale-110 text-[var(--text-dark)]':'text-[var(--text-muted)] opacity-60'}`}><span className="text-xl mb-1">📡</span><span className="text-[9px] font-black tracking-tighter">固定支出</span></button>
-                                <button onClick={() => setActiveTab('subs')} className={`flex flex-col items-center flex-1 transition-transform ${activeTab==='subs'?'scale-110 text-[var(--text-dark)]':'text-[var(--text-muted)] opacity-60'}`}><span className="text-xl mb-1">☁️</span><span className="text-[9px] font-black tracking-tighter">雲端訂閱</span></button>
-                                <button onClick={() => setActiveTab('expense')} className={`flex flex-col items-center flex-1 transition-transform ${activeTab==='expense'?'scale-110 text-[var(--text-dark)]':'text-[var(--text-muted)] opacity-60'}`}><span className="text-xl mb-1">💸</span><span className="text-[9px] font-black tracking-tighter">每日花費</span></button>
-                                <button onClick={() => setActiveTab('future')} className={`flex flex-col items-center flex-1 transition-transform ${activeTab==='future'?'scale-110 text-[var(--text-dark)]':'text-[var(--text-muted)] opacity-60'}`}><span className="text-xl mb-1">💌</span><span className="text-[9px] font-black tracking-tighter">儲蓄願望</span></button>
+                                <button onClick={() => setActiveTab('home')} className={`flex flex-col items-center flex-1 transition-transform ${activeTab==='home'?'scale-110 text-[var(--text-dark)]':'text-[var(--text-muted)] opacity-60'}`}><span className="text-2xl mb-1">🏕️</span><span className="text-[10px] font-black tracking-tighter">365存錢</span></button>
+                                <button onClick={() => setActiveTab('bills')} className={`flex flex-col items-center flex-1 transition-transform ${activeTab==='bills'?'scale-110 text-[var(--text-dark)]':'text-[var(--text-muted)] opacity-60'}`}><span className="text-2xl mb-1">📡</span><span className="text-[10px] font-black tracking-tighter">固定支出</span></button>
+                                <button onClick={() => setActiveTab('expense')} className={`flex flex-col items-center flex-1 transition-transform ${activeTab==='expense'?'scale-110 text-[var(--text-dark)]':'text-[var(--text-muted)] opacity-60'}`}><span className="text-2xl mb-1">💸</span><span className="text-[10px] font-black tracking-tighter">每日花費</span></button>
+                                <button onClick={() => setActiveTab('stats')} className={`flex flex-col items-center flex-1 transition-transform ${activeTab==='stats'?'scale-110 text-[var(--text-dark)]':'text-[var(--text-muted)] opacity-60'}`}><span className="text-2xl mb-1">📈</span><span className="text-[10px] font-black tracking-tighter">支出統計</span></button>
+                                <button onClick={() => setActiveTab('future')} className={`flex flex-col items-center flex-1 transition-transform ${activeTab==='future'?'scale-110 text-[var(--text-dark)]':'text-[var(--text-muted)] opacity-60'}`}><span className="text-2xl mb-1">💌</span><span className="text-[10px] font-black tracking-tighter">儲蓄願望</span></button>
                             </div>
                         </nav>
                     </div>
 
                     {renderEditOverlays()}
-                    {renderAiModal()}
                     {renderStatsModal()}
                 </div>
             );
         }
 
         const root = ReactDOM.createRoot(document.getElementById('root'));
-        root.render(
-            <ErrorBoundary>
-                <App />
-            </ErrorBoundary>
-        );
+        root.render(<App />);
     </script>
 </body>
 </html>

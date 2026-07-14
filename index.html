@@ -6,22 +6,19 @@
     <title>豬豬的生活簡報</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
-    
-    <!-- 使用全球最穩定 cdnjs 確保載入 -->
     <script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
     <script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.6/babel.min.js"></script>
 
     <script>
-        // 萬一有錯誤，讓畫面不會死當的備用救援
         window.onerror = function(msg, url, lineNo, columnNo, error) {
             var root = document.getElementById('root');
             if(root) {
                 root.innerHTML = `
                     <div style="padding: 30px; text-align: center; color: #D98C8C;">
                         <h2 style="font-size: 24px; font-weight: 900; margin-bottom: 10px;">⚠️ 系統重啟中</h2>
-                        <p style="font-size: 14px; font-weight: bold; margin-bottom: 20px;">正在嘗試修復資料...</p>
-                        <button onclick="localStorage.clear(); window.location.reload();" style="background: #D98C8C; color: white; padding: 15px 30px; border-radius: 15px; font-weight: 900; border: none;">點此重置快取並修復</button>
+                        <p style="font-size: 14px; font-weight: bold; margin-bottom: 20px;">正在修復資料，請稍候...</p>
+                        <button onclick="localStorage.clear(); window.location.reload();" style="background: #D98C8C; color: white; padding: 15px 30px; border-radius: 15px; font-weight: 900; border: none;">強制清除快取</button>
                     </div>
                 `;
             }
@@ -63,10 +60,6 @@
         @keyframes flyIntoEnvelope { 0% { transform: translateY(0) scale(1); opacity: 1; filter: brightness(1); } 40% { transform: translateY(-100px) scale(1.2); filter: brightness(1.5); } 100% { transform: translateY(-300px) scale(0.2); opacity: 0; filter: brightness(2); } }
         .fly-anim { animation: flyIntoEnvelope 0.8s cubic-bezier(0.25, 1, 0.3, 1) forwards; pointer-events: none; z-index: 50; }
 
-        .zine-modal { position: fixed; inset: 0; z-index: 100; background: #FAF8F5; overflow-y: auto; animation: slideUp 0.5s cubic-bezier(0.16, 1, 0.3, 1); }
-        .zine-cover { background-image: linear-gradient(to bottom, rgba(0,0,0,0.1), rgba(0,0,0,0.7)), url('https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&q=80&w=800'); background-size: cover; background-position: center; }
-        @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
-
         .bottom-nav { background-color: rgba(255,255,255,0.95); backdrop-filter: blur(10px); border-top-left-radius: 32px; border-top-right-radius: 32px; box-shadow: 0 -4px 24px rgba(44, 62, 53, 0.05); }
         .input-eco { background: #F4F5F3; border: 2px solid transparent; border-radius: 20px; padding: 16px 20px; width: 100%; color: var(--text-dark); font-weight: bold; outline: none; transition: 0.2s; }
         .input-eco:focus { border-color: var(--green-soft); background: #fff; box-shadow: 0 4px 12px rgba(163, 184, 153, 0.15); }
@@ -83,59 +76,55 @@
         .cell-saved { background-color: var(--green-deep); color: white; box-shadow: 0 4px 10px rgba(74, 124, 89, 0.3); transform: scale(1.05); }
         .cell-unsaved { background-color: #F4F5F3; color: var(--text-muted); border: 1px solid #E8EBE9; }
         .cell-unsaved:active { transform: scale(0.9); }
+        
+        /* Calendar Styles */
+        .cal-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px; text-align: center; }
+        .cal-day { padding: 8px 0; border-radius: 12px; font-weight: bold; font-size: 14px; position: relative; cursor: pointer; transition: 0.2s; }
+        .cal-day.active { background-color: #FCD34D; color: #78350F; box-shadow: 0 4px 10px rgba(252,211,77,0.4); }
+        .cal-day:active { transform: scale(0.9); }
+        .cal-dot { position: absolute; bottom: 4px; left: 50%; transform: translateX(-50%); width: 4px; height: 4px; border-radius: 50%; background-color: var(--text-dark); }
+        .cal-dot.income { background-color: #10B981; }
     </style>
 </head>
 <body>
     <div id="root">
         <div style="padding: 40px 20px; text-align: center; color: #8A9A90;">
             <div style="font-size: 40px; margin-bottom: 20px; animation: pulse 1.5s infinite;">🐷</div>
-            <h3 style="font-weight: 900;">連線載入中...</h3>
-            <p style="font-size: 12px; margin-top: 10px;">系統正在保衛您的資料</p>
+            <h3 style="font-weight: 900;">載入卡片日曆系統...</h3>
         </div>
     </div>
 
     <script type="text/babel">
-        // ★ 補上遺漏的 ErrorBoundary 類別，這是防止白屏的終極機制 ★
         class ErrorBoundary extends React.Component {
-            constructor(props) {
-                super(props);
-                this.state = { hasError: false, errorMsg: '' };
-            }
+            constructor(props) { super(props); this.state = { hasError: false, errorMsg: '' }; }
             static getDerivedStateFromError(error) { return { hasError: true, errorMsg: error.toString() }; }
             render() {
-                if (this.state.hasError) {
-                    return (
-                        <div style={{ padding: '30px', textAlign: 'center' }}>
-                            <h2 style={{ color: '#D98C8C', fontWeight: '900' }}>⚠️ 畫面渲染失敗</h2>
-                            <p style={{ fontSize: '12px', margin: '15px 0' }}>可能是舊的暫存資料衝突導致。</p>
-                            <button onClick={() => { localStorage.clear(); window.location.reload(); }} style={{ background: '#D98C8C', color: 'white', padding: '10px 20px', borderRadius: '10px', fontWeight: 'bold' }}>點此清除異常快取</button>
-                            <p style={{ fontSize: '10px', color: 'gray', marginTop: '20px' }}>{this.state.errorMsg}</p>
-                        </div>
-                    );
-                }
+                if (this.state.hasError) return <div style={{padding:'30px',textAlign:'center'}}><h2 style={{color:'#D98C8C',fontWeight:'900'}}>⚠️ 畫面渲染失敗</h2><button onClick={()=>{localStorage.clear();window.location.reload();}} style={{background:'#D98C8C',color:'white',padding:'10px 20px',borderRadius:'10px',fontWeight:'bold',marginTop:'20px'}}>強制重置</button><p style={{fontSize:'10px',color:'gray',marginTop:'20px'}}>{this.state.errorMsg}</p></div>;
                 return this.props.children;
             }
         }
 
         const { useState, useEffect } = React;
 
+        // ★ 卡片式分類設定 (新增 Icon 與背景色)
         const DEFAULT_CATEGORIES = [
-            { id: 'food', label: '🍔 餐飲', color: '#D4A373' },
-            { id: 'shopping', label: '🛍️ 購物', color: '#D98C8C' },
-            { id: 'transport', label: '🚗 交通', color: '#60A5FA' },
-            { id: 'life', label: '🏠 生活', color: '#A3B899' },
-            { id: 'other', label: '📦 其他', color: '#FCD34D' }
+            { id: 'food', label: '餐飲', icon: '🍔', color: '#EED7A1', text: '#926F27' },
+            { id: 'transport', label: '交通', icon: '🚌', color: '#BFDBFE', text: '#1E3A8A' },
+            { id: 'shopping', label: '購物', icon: '🛍️', color: '#FECACA', text: '#991B1B' },
+            { id: 'entertainment', label: '娛樂', icon: '🎤', color: '#E9D5FF', text: '#4C1D95' },
+            { id: 'medical', label: '醫教', icon: '🏥', color: '#A7F3D0', text: '#064E3B' },
+            { id: 'home', label: '居家', icon: '🏠', color: '#FFEDD5', text: '#701A75' }
         ];
 
         const INCOME_CATEGORIES = [
-            { id: 'salary', label: '💰 薪資' },
-            { id: 'allowance', label: '🎁 額外津貼' },
-            { id: 'other_in', label: '📦 其他收入' }
+            { id: 'salary', label: '薪資', icon: '💳', color: '#A7F3D0', text: '#064E3B' },
+            { id: 'bonus', label: '獎金', icon: '💰', color: '#FEF08A', text: '#92400E' },
+            { id: 'parttime', label: '兼職', icon: '⌚', color: '#FFEDD5', text: '#9A3412' }
         ];
 
-        const getTodayPlusDays = (days) => {
-            const d = new Date(); d.setDate(d.getDate() + days);
-            return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+        const getTodayDateStr = () => {
+            const d = new Date();
+            return `${d.getFullYear()}/${String(d.getMonth()+1).padStart(2,'0')}/${String(d.getDate()).padStart(2,'0')}`;
         };
 
         const DEFAULT_STATE = {
@@ -163,13 +152,9 @@
                 { id: 'b18', name: 'Visa卡', amount: 0, paid: false },
                 { id: 'b19', name: '貨車保養', amount: 0, paid: false }
             ],
-            quickTags: [
-                '成成的煙', '豬豬的煙', '成成的咖啡', '早餐', '午餐', '晚餐', '下午茶', '宵夜',
-                '奶粉', 'Bo弟奶粉', '尿布', 'Q尿布', 'Bo弟尿布', '保久乳', '羊奶', '乳酸菌、寶乖亞',
-                '加油', '生活用品', '嬰幼用品', '疫苗接種', '洗衣機修理費', '澎湖'
-            ],
+            quickTags: ['成成的煙', '豬豬的煙', '早餐', '午餐', '晚餐', '飲料', '尿布', '加油', '嬰幼用品'],
             customGoals: [ { id: 1, name: '買車頭期款', target: 500000, current: 0 } ],
-            wishes: [ { id: 1, name: '新款 Dyson 吸塵器', cost: 4000, frozen: true, reason: '舊的壞了' }, { id: 2, name: '名牌小包包', cost: 8500, frozen: true, reason: '犒賞自己' } ]
+            wishes: []
         };
 
         const getPiggyTitleInfo = (level) => {
@@ -183,7 +168,7 @@
 
         const scanAllHistoricalBackups = () => {
             const found = [];
-            const possibleKeys = ['piggy_life_data_v3', 'piggy_lifeos_stable_v6', 'piggy_lifeos_stable_v7', 'piggy_lifeos_v8_subs', 'piggy_lifeos_v9_grid', 'piggy_lifeos_v10_final', 'piggy_active_v11', 'piggy_active_v12', 'piggy_active_v13', 'piggy_active_v14'];
+            const possibleKeys = ['piggy_life_data_v3', 'piggy_lifeos_stable_v7', 'piggy_active_v13', 'piggy_active_v14', 'piggy_active_v15'];
             possibleKeys.forEach(k => {
                 const val = localStorage.getItem(k);
                 if (val) {
@@ -199,9 +184,9 @@
         };
 
         function App() {
-            // ★ 安全初始化 V14
+            // ★ V15 升級載入
             const [data, setData] = useState(() => {
-                const active = localStorage.getItem('piggy_active_v14');
+                const active = localStorage.getItem('piggy_active_v15');
                 if (active) {
                     try { 
                         const d = { ...DEFAULT_STATE, ...JSON.parse(active) };
@@ -224,33 +209,24 @@
                 return DEFAULT_STATE;
             });
 
-            useEffect(() => {
-                localStorage.setItem('piggy_active_v14', JSON.stringify(data));
-            }, [data]);
+            useEffect(() => { localStorage.setItem('piggy_active_v15', JSON.stringify(data)); }, [data]);
 
             const [activeTab, setActiveTab] = useState('home'); 
             const [toastMsg, setToastMsg] = useState(null);
             const [showRecoveryCenter, setShowRecoveryCenter] = useState(false); 
             const [importText, setImportText] = useState('');
 
-            // 記帳表單
-            const [recordType, setRecordType] = useState('expense'); // 'expense' 或 'income'
+            // 記帳狀態
+            const [recordType, setRecordType] = useState('expense'); // 'expense' or 'income'
             const [expenseTitle, setExpenseTitle] = useState('');
             const [expenseNote, setExpenseNote] = useState(''); 
             const [expenseAmount, setExpenseAmount] = useState('');
-            const [expenseCategory, setExpenseCategory] = useState('food');
+            const [expenseCategory, setExpenseCategory] = useState(DEFAULT_CATEGORIES[0].id);
             
-            // 編輯既有明細專用狀態
             const [editingRecord, setEditingRecord] = useState(null);
-
-            // 自訂分類狀態
-            const [newCatLabel, setNewCatLabel] = useState('');
-            const [newCatColor, setNewCatColor] = useState('#D98C8C');
-
             const [showEditTags, setShowEditTags] = useState(false);
             const [newTag, setNewTag] = useState('');
             const [actionSheet, setActionSheet] = useState(null);
-            const [expandedMonth, setExpandedMonth] = useState('');
             
             const [editAssetsAmount, setEditAssetsAmount] = useState('');
             const [editGoalTarget, setEditGoalTarget] = useState('');
@@ -262,8 +238,11 @@
             const [newItemCost, setNewItemCost] = useState('');
             const [newItemNote, setNewItemNote] = useState('');
             const [editingBillId, setEditingBillId] = useState(null); 
-            const [showZine, setShowZine] = useState(false);
             const [animatingWishId, setAnimatingWishId] = useState(null);
+
+            // ★ 日曆狀態
+            const [currentViewMonth, setCurrentViewMonth] = useState(new Date());
+            const [selectedDateStr, setSelectedDateStr] = useState(getTodayDateStr());
 
             const showToast = (msg) => { setToastMsg(msg); setTimeout(() => setToastMsg(null), 3000); };
 
@@ -292,26 +271,26 @@
                 if (!currentArr.includes(dayAmount)) { gainRewards(5); showToast(`💰 成功存下 $${dayAmount}！`); }
             };
 
-            // --- 記帳邏輯 (支援收入與支出) ---
             const handleRecordExpense = () => {
-                if (!expenseAmount || !expenseTitle) { showToast("⚠️ 請輸入名稱以及金額"); return; }
+                if (!expenseAmount) { showToast("⚠️ 請輸入金額"); return; }
                 const amount = parseInt(expenseAmount);
+                // 卡片式可以不用填 Title，預設為分類名稱
+                const catArr = recordType === 'expense' ? (data.categories || DEFAULT_CATEGORIES) : INCOME_CATEGORIES;
+                const catObj = catArr.find(c => c.id === expenseCategory);
+                const finalTitle = expenseTitle.trim() || (catObj ? catObj.label : '未命名');
+
                 setData(p => {
-                    const d = new Date();
-                    const dateStr = `${d.getFullYear()}/${String(d.getMonth()+1).padStart(2,'0')}/${String(d.getDate()).padStart(2,'0')}`; 
-                    const newRecord = { id: Date.now(), title: expenseTitle, note: expenseNote, amount: amount, category: expenseCategory, date: dateStr };
-                    
+                    const newRecord = { id: Date.now(), title: finalTitle, note: expenseNote, amount: amount, category: expenseCategory, date: selectedDateStr };
                     if (recordType === 'expense') {
                         return { ...p, assets: p.assets - amount, spent: p.spent + amount, expenses: [newRecord, ...(p.expenses || [])] };
                     } else {
                         return { ...p, assets: p.assets + amount, incomes: [newRecord, ...(p.incomes || [])] };
                     }
                 });
-                gainRewards(10); showToast(`💸 已紀錄：${expenseTitle} $${amount}`);
+                gainRewards(10); showToast(`💸 已紀錄：${finalTitle} $${amount}`);
                 setExpenseTitle(''); setExpenseAmount(''); setExpenseNote('');
             };
 
-            // --- 歷史明細編輯與刪除邏輯 ---
             const handleOpenEditRecord = (record) => {
                 setEditingRecord(record);
                 setExpenseTitle(record.title);
@@ -323,14 +302,11 @@
             };
 
             const handleSaveEditRecord = () => {
-                if (!expenseAmount || !expenseTitle) return;
+                if (!expenseAmount) return;
                 const newAmount = parseInt(expenseAmount);
-                
                 setData(p => {
-                    let newAssets = p.assets;
-                    let newSpent = p.spent;
-                    let newExpenses = [...(p.expenses || [])];
-                    let newIncomes = [...(p.incomes || [])];
+                    let newAssets = p.assets; let newSpent = p.spent;
+                    let newExpenses = [...(p.expenses || [])]; let newIncomes = [...(p.incomes || [])];
 
                     if (editingRecord._type === 'expense') {
                         newAssets = newAssets + editingRecord.amount - newAmount;
@@ -342,9 +318,7 @@
                     }
                     return { ...p, assets: newAssets, spent: newSpent, expenses: newExpenses, incomes: newIncomes };
                 });
-                setActionSheet(null);
-                setEditingRecord(null);
-                showToast('✅ 紀錄已更新');
+                setActionSheet(null); setEditingRecord(null); showToast('✅ 紀錄已更新');
             };
 
             const handleDeleteRecord = (id, type, amount) => {
@@ -358,17 +332,7 @@
                 showToast('🗑️ 已刪除該筆紀錄');
             };
 
-            // --- 其他功能邏輯 ---
-            const toggleBillStatus = (billId) => {
-                setData(p => ({ ...p, bills: (p.bills || []).map(b => {
-                    if (b.id === billId) {
-                        showToast(!b.paid ? `✅ 已標記支付：${b.name}` : `↩️ 已取消支付：${b.name}`);
-                        return { ...b, paid: !b.paid };
-                    }
-                    return b;
-                })}));
-            };
-
+            const toggleBillStatus = (billId) => { setData(p => ({ ...p, bills: (p.bills || []).map(b => { if (b.id === billId) { showToast(!b.paid ? `✅ 已標記支付：${b.name}` : `↩️ 已取消支付：${b.name}`); return { ...b, paid: !b.paid }; } return b; })})); };
             const handleDefrost = (wishId) => {
                 const wish = (data.wishes || []).find(w => w.id === wishId);
                 if (!wish) return;
@@ -386,21 +350,9 @@
                             const newGoals = goalsArr.map((g, idx) => idx === 0 ? { ...g, current: Math.min(newCurrent, g.target) } : g);
                             return { ...p, customGoals: newGoals, wishes: (p.wishes || []).filter(w => w.id !== wishId) };
                         });
-                        setAnimatingWishId(null);
-                        showToast(`✨ 克服衝動！$${wish.cost} 已注入存錢目標！`);
+                        setAnimatingWishId(null); showToast(`✨ 克服衝動！$${wish.cost} 已注入目標！`);
                     }, 800);
                 }
-            };
-
-            const handleAddCategory = () => {
-                if (!newCatLabel) return;
-                const newCat = { id: 'cat_' + Date.now(), label: newCatLabel, color: newCatColor };
-                setData(p => ({ ...p, categories: [...(p.categories || DEFAULT_CATEGORIES), newCat] }));
-                setNewCatLabel('');
-                showToast('🏷️ 分類已新增');
-            };
-            const handleDeleteCategory = (id) => {
-                setData(p => ({ ...p, categories: (p.categories || []).filter(c => c.id !== id) }));
             };
 
             const handleUpdateAssets = () => { const amt = parseInt(editAssetsAmount); if (!isNaN(amt)) { setData(p => ({ ...p, assets: amt })); showToast('💰 資產已更新'); setActionSheet(null); } };
@@ -426,78 +378,53 @@
             const handleAddWish = () => {
                 if(!newItemName) return;
                 setData(p => ({ ...p, wishes: [{ id: Date.now(), name: newItemName, cost: parseInt(newItemCost)||0, frozen: true, reason: '自訂願望' }, ...(p.wishes || [])] }));
-                setNewItemName(''); setNewItemCost(''); showToast('❄️ 已停入慾望停車場');
+                setNewItemName(''); setNewItemCost(''); showToast('❄️ 已停入停車場');
             };
 
-            const handleRestoreFromKey = (rawJsonString) => {
+            const handleRestoreFromKey = (rawJsonString, label) => {
                 try {
                     const parsed = JSON.parse(rawJsonString);
-                    if (!parsed.categories || parsed.categories.length === 0) parsed.categories = DEFAULT_CATEGORIES;
-                    if (!parsed.customGoals || parsed.customGoals.length === 0) parsed.customGoals = DEFAULT_STATE.customGoals;
-                    if (!parsed.incomes) parsed.incomes = [];
                     setData({ ...DEFAULT_STATE, ...parsed });
-                    showToast(`✅ 資料還原成功！`);
-                    setShowRecoveryCenter(false);
+                    showToast(`✅ 已從 [${label}] 還原資料！`); setShowRecoveryCenter(false);
                 } catch(e) { alert('還原失敗'); }
             };
-
             const handleExportText = () => {
                 const dummy = document.createElement("textarea"); document.body.appendChild(dummy);
                 dummy.value = JSON.stringify(data); dummy.select(); document.execCommand("copy"); document.body.removeChild(dummy);
-                alert('🎉 資料已複製！可貼到 LINE 或備忘錄備份。');
+                alert('🎉 資料已複製！可貼到 LINE 或備忘錄存起來。');
+            };
+            const handleImportText = () => {
+                if (!importText) return;
+                try {
+                    const parsed = JSON.parse(importText);
+                    setData({ ...DEFAULT_STATE, ...parsed }); showToast(`✅ 資料匯入還原成功！`); setShowRecoveryCenter(false); setImportText('');
+                } catch(e) { alert('匯入失敗，格式錯誤。'); }
             };
 
-            // 統計 (結合收入與支出)
-            const getStats = () => {
-                const allRecords = [
-                    ...(data.expenses || []).map(e => ({...e, _type: 'expense'})),
-                    ...(data.incomes || []).map(i => ({...i, _type: 'income'}))
-                ].sort((a, b) => b.id - a.id); // 最新在前
-
-                const monthlyData = {};
-                const yearlyData = {};
-                const currentCats = data.categories || DEFAULT_CATEGORIES;
-
-                allRecords.forEach(rec => {
-                    if(!rec.date) return;
-                    const dateParts = rec.date.split(/[/-]/);
-                    if (dateParts.length < 3) return;
-                    const y = dateParts[0]; const m = dateParts[1];
-                    const yKey = y + '年'; const mKey = y + '年 ' + m + '月';
-
-                    if(!monthlyData[mKey]) monthlyData[mKey] = { expenseTotal: 0, incomeTotal: 0, items: [], categories: {} };
-                    monthlyData[mKey].items.push(rec);
-
-                    if (rec._type === 'expense') {
-                        monthlyData[mKey].expenseTotal += rec.amount;
-                        monthlyData[mKey].categories[rec.category] = (monthlyData[mKey].categories[rec.category] || 0) + rec.amount;
-                        yearlyData[yKey] = (yearlyData[yKey] || 0) + rec.amount;
-                    } else {
-                        monthlyData[mKey].incomeTotal += rec.amount;
-                    }
-                });
-
-                const sortedMonthly = Object.keys(monthlyData).sort().reverse().map(month => {
-                    const md = monthlyData[month];
-                    const catStats = Object.keys(md.categories).map(k => {
-                        const amount = md.categories[k];
-                        const percent = md.expenseTotal === 0 ? 0 : Math.round((amount / md.expenseTotal) * 100);
-                        const catObj = currentCats.find(c => c.id === k); 
-                        return { key: k, amount: amount, percent: percent, label: catObj ? catObj.label : '未分類', color: catObj ? catObj.color : '#999' };
-                    }).filter(c => c.amount > 0).sort((a,b) => b.amount - a.amount);
-                    return { month: month, expenseTotal: md.expenseTotal, incomeTotal: md.incomeTotal, items: md.items, categories: catStats };
-                });
-
-                const sortedYearly = Object.keys(yearlyData).sort().reverse().map(year => [year, yearlyData[year]]);
-                return { monthly: sortedMonthly, yearly: sortedYearly };
+            // --- 日曆計算 ---
+            const getDaysInMonth = (year, month) => new Date(year, month + 1, 0).getDate();
+            const getFirstDayOfMonth = (year, month) => {
+                let day = new Date(year, month, 1).getDay();
+                return day === 0 ? 6 : day - 1; // 轉換為週一為 0
             };
 
-            const statsData = getStats();
-            useEffect(() => {
-                if (activeTab === 'stats' && !expandedMonth && statsData.monthly.length > 0) setExpandedMonth(statsData.monthly[0].month);
-            }, [activeTab]);
+            const currentYear = currentViewMonth.getFullYear();
+            const currentMonth = currentViewMonth.getMonth();
+            const daysInMonth = getDaysInMonth(currentYear, currentMonth);
+            const firstDay = getFirstDayOfMonth(currentYear, currentMonth);
+            const calendarDays = [];
+            for (let i = 0; i < firstDay; i++) calendarDays.push(null);
+            for (let i = 1; i <= daysInMonth; i++) calendarDays.push(i);
 
-            // --- 各頁籤畫面渲染 ---
+            const allRecords = [ ...(data.expenses || []).map(e => ({...e, _type: 'expense'})), ...(data.incomes || []).map(i => ({...i, _type: 'income'})) ].sort((a, b) => b.id - a.id);
+            
+            const recordsByDate = {};
+            allRecords.forEach(r => {
+                if (!recordsByDate[r.date]) recordsByDate[r.date] = [];
+                recordsByDate[r.date].push(r);
+            });
+
+            // --- 畫面渲染 ---
             const renderHeader = () => {
                 const safeLevel = data.player && data.player.level ? data.player.level : 1;
                 const titleInfo = getPiggyTitleInfo(safeLevel);
@@ -521,7 +448,6 @@
                 const total365 = savingsArr.reduce((sum, val) => sum + val, 0);
                 const percent365 = Math.min(100, Math.floor((total365 / 66795) * 100));
                 const days = []; for (let i = 1; i <= 365; i++) days.push(i);
-
                 return (
                     <div className="space-y-4 fade-in mt-2 pb-32 h-full flex flex-col">
                         {renderHeader()}
@@ -544,6 +470,7 @@
                 );
             };
 
+            // 固定支出雷達 - 網格排版 (圖1方塊感)
             const renderBillsView = () => (
                 <div className="space-y-4 fade-in mt-2 pb-24">
                     {renderHeader()}
@@ -574,28 +501,18 @@
                 </div>
             );
 
+            // ★ 每日花費 - 升級「卡片式網格」分類 (圖1風格)
             const renderExpenseView = () => {
                 const goalsArr = data.customGoals || [];
                 const goal = goalsArr.length > 0 ? goalsArr[0] : { name: '存錢目標', target: 100000, current: 0 };
                 const percent = goal.target > 0 ? Math.min(100, Math.floor((goal.current / goal.target) * 100)) : 0;
                 const quickTagsArr = data.quickTags || [];
-                const catArr = data.categories || DEFAULT_CATEGORIES; 
+                const currentCats = recordType === 'expense' ? (data.categories || DEFAULT_CATEGORIES) : INCOME_CATEGORIES;
                 
                 return (
                     <div className="space-y-4 fade-in mt-2 pb-32">
                         {renderHeader()}
-                        <div className="bg-amber-100 p-4 rounded-3xl border border-amber-200 flex items-center justify-between shadow-sm relative overflow-hidden">
-                            <button onClick={() => {
-                                setEditGoalTarget(goal.target); setEditGoalCurrent(goal.current); setEditGoalName(goal.name); setEditingGoalId(goal.id || null); setActionSheet('editGoal');
-                            }} className="absolute top-2 right-2 text-[10px] font-bold bg-amber-200 text-amber-800 px-2 py-1 rounded-lg z-10">⚙️ 編輯</button>
-                            <div className="relative z-10">
-                                <p className="text-xs font-bold text-amber-800 mb-1">🎯 置頂存款目標</p>
-                                <h3 className="font-black text-lg text-[var(--text-dark)]">{goal.name}</h3>
-                            </div>
-                            <div className="text-right relative z-10 pt-4"><span className="font-black text-2xl text-amber-600">{percent}%</span></div>
-                            <div className="absolute left-0 top-0 h-full bg-amber-200/40 transition-all duration-500" style={{ width: percent + '%' }}></div>
-                        </div>
-
+                        
                         <div className="grid grid-cols-2 gap-3">
                             <div className="bg-white p-5 rounded-3xl border border-gray-100 shadow-sm relative">
                                 <button onClick={() => { setEditAssetsAmount(data.assets || 0); setActionSheet('editAssets'); }} className="absolute top-3 right-3 text-xs bg-gray-100 text-gray-500 px-2 py-1 rounded-lg font-bold">⚙️</button>
@@ -603,160 +520,232 @@
                                 <p className="font-black text-2xl text-[var(--green-deep)]">${(data.assets || 0).toLocaleString()}</p>
                             </div>
                             <div className="bg-white p-5 rounded-3xl border border-gray-100 shadow-sm relative flex justify-between items-center">
-                                <div>
+                                <div className="flex-1">
                                     <p className="text-xs font-bold text-[var(--text-muted)] mb-1">本月累計支出 📉</p>
                                     <p className="font-black text-2xl text-[var(--brown-dirt)]">${(data.spent || 0).toLocaleString()}</p>
                                 </div>
-                                <button onClick={() => setData(p => ({...p, spent: 0}))} className="text-[10px] bg-red-100 text-red-600 px-2 py-1 rounded-lg font-bold">歸零</button>
+                                <button onClick={() => setData(p => ({...p, spent: 0}))} className="text-[10px] bg-red-100 text-red-600 px-2 py-1 rounded-lg font-bold shadow-sm">歸零</button>
                             </div>
                         </div>
 
-                        <div className="bento-card">
-                            <div className="flex justify-between items-center mb-4">
-                                <h3 className="font-black text-lg flex items-center"><span className="text-2xl mr-2">✍️</span> 快速記一筆</h3>
-                                <button onClick={() => setShowEditTags(!showEditTags)} className="text-xs font-bold text-gray-500 bg-gray-100 px-3 py-1.5 rounded-lg active:scale-95">{showEditTags ? '完成' : '⚙️ 編輯標籤'}</button>
+                        <div className="bento-card bg-white p-6 shadow-sm border border-gray-100 rounded-[32px]">
+                            {/* 收入 / 支出 切換 */}
+                            <div className="flex bg-[#F4F5F3] p-1.5 rounded-2xl mb-6">
+                                <button className={`flex-1 py-2.5 text-sm font-black rounded-xl transition-all shadow-sm ${recordType === 'expense' ? 'bg-white text-[var(--text-dark)] scale-100' : 'text-gray-400 scale-95 shadow-none'}`} onClick={() => { setRecordType('expense'); setExpenseCategory(currentCats[0].id); }}>支出</button>
+                                <button className={`flex-1 py-2.5 text-sm font-black rounded-xl transition-all shadow-sm ${recordType === 'income' ? 'bg-white text-green-700 scale-100' : 'text-gray-400 scale-95 shadow-none'}`} onClick={() => { setRecordType('income'); setExpenseCategory(INCOME_CATEGORIES[0].id); }}>收入</button>
                             </div>
 
-                            <div className="flex bg-[#F4F5F3] p-1 rounded-xl mb-4">
-                                <button className={`flex-1 py-2 text-sm font-bold rounded-lg transition-colors ${recordType === 'expense' ? 'bg-white shadow-sm text-[var(--text-dark)]' : 'text-gray-400'}`} onClick={() => { setRecordType('expense'); setExpenseCategory(catArr[0].id); }}>支出</button>
-                                <button className={`flex-1 py-2 text-sm font-bold rounded-lg transition-colors ${recordType === 'income' ? 'bg-white shadow-sm text-green-700' : 'text-gray-400'}`} onClick={() => { setRecordType('income'); setExpenseCategory('salary'); }}>收入</button>
+                            {/* 卡片式分類網格 (圖1風格) */}
+                            <div className="mb-6">
+                                <h3 className="text-xs font-bold text-gray-400 mb-3 ml-1 flex justify-between">
+                                    <span>選擇帳本分類：</span>
+                                    <span onClick={() => { if(recordType === 'expense') setActionSheet('editCategories'); }} className="text-[var(--green-deep)] cursor-pointer">⚙️ 自訂</span>
+                                </h3>
+                                <div className="grid grid-cols-3 gap-3">
+                                    {currentCats.map(c => {
+                                        const isSelected = expenseCategory === c.id;
+                                        // 自動產生防呆背景色與 Icon (如果自訂沒設定的話)
+                                        const bgColor = c.color || '#EED7A1';
+                                        const displayIcon = c.icon || c.label.substring(0, 2);
+                                        const cleanLabel = c.label.replace(/[\uD800-\uDBFF][\uDC00-\uDFFF]|[\u2600-\u27BF]/g, '').trim(); // 去除 Emoji
+                                        
+                                        return (
+                                            <div 
+                                                key={c.id} 
+                                                onClick={() => setExpenseCategory(c.id)} 
+                                                className={`rounded-[20px] p-3 flex flex-col items-center justify-center cursor-pointer transition-all ${isSelected ? 'ring-2 ring-[var(--green-deep)] ring-offset-2 scale-105 shadow-md' : 'scale-100 opacity-80'}`}
+                                                style={{ backgroundColor: `${bgColor}20` }} // 20% 透明度背景
+                                            >
+                                                <div className="w-10 h-10 rounded-full flex items-center justify-center text-xl mb-1.5 shadow-sm" style={{ backgroundColor: bgColor }}>
+                                                    {displayIcon}
+                                                </div>
+                                                <span className="text-xs font-bold text-gray-700 text-center leading-tight line-clamp-1">{cleanLabel || c.label}</span>
+                                            </div>
+                                        )
+                                    })}
+                                </div>
                             </div>
 
-                            {showEditTags ? (
-                                <div className="bg-gray-50 p-4 rounded-2xl mb-4 border border-gray-200">
-                                    <div className="flex space-x-2 mb-3">
-                                        <input type="text" value={newTag} onChange={e=>setNewTag(e.target.value)} placeholder="自訂新標籤..." className="flex-1 px-3 py-2 rounded-xl border border-gray-200 text-sm font-bold outline-none" />
-                                        <button onClick={() => { if(newTag){ setData(p=>({...p, quickTags:[newTag,...(p.quickTags||[])]})); setNewTag(''); showToast('🏷️ 已新增');} }} className="bg-[var(--text-dark)] text-white px-4 rounded-xl font-bold text-sm">新增</button>
+                            <div className="mb-4">
+                                <div className="flex justify-between items-center mb-2"><span className="text-xs font-bold text-gray-400 ml-1">快速名稱與備註：</span><button onClick={() => setShowEditTags(!showEditTags)} className="text-[10px] text-gray-400 font-bold bg-gray-100 px-2 py-1 rounded-md">⚙️</button></div>
+                                
+                                {/* 快速標籤區 */}
+                                {showEditTags ? (
+                                    <div className="bg-gray-50 p-3 rounded-2xl mb-3 border border-gray-200">
+                                        <div className="flex space-x-2 mb-2">
+                                            <input type="text" value={newTag} onChange={e=>setNewTag(e.target.value)} placeholder="新標籤..." className="flex-1 px-3 py-1.5 rounded-xl border border-gray-200 text-xs font-bold outline-none" />
+                                            <button onClick={() => { if(newTag){ setData(p=>({...p, quickTags:[newTag,...(p.quickTags||[])]})); setNewTag(''); } }} className="bg-[var(--text-dark)] text-white px-3 rounded-xl font-bold text-xs">新增</button>
+                                        </div>
+                                        <div className="flex flex-wrap gap-1.5">
+                                            {quickTagsArr.map((tag, i) => (
+                                                <span key={i} onClick={() => setData(p => ({...p, quickTags: (p.quickTags||[]).filter(t => t!==tag)}))} className="px-2 py-1 bg-red-100 text-red-700 rounded-lg text-[10px] font-bold cursor-pointer">{tag} ✕</span>
+                                            ))}
+                                        </div>
                                     </div>
-                                    <div className="flex flex-wrap gap-2">
+                                ) : (
+                                    <div className="flex flex-wrap gap-1.5 mb-3 max-h-24 overflow-y-auto">
                                         {quickTagsArr.map((tag, i) => (
-                                            <span key={i} onClick={() => setData(p => ({...p, quickTags: (p.quickTags||[]).filter(t => t!==tag)}))} className="px-3 py-1 bg-red-100 text-red-700 rounded-lg text-xs font-bold cursor-pointer">{tag} ✕</span>
+                                            <button key={i} onClick={() => setExpenseTitle(tag)} className={`tag-pill !text-[11px] !px-2.5 !py-1 ${expenseTitle === tag ? 'selected' : 'bg-white border-[#E8EBE9]'}`}>{tag}</button>
                                         ))}
                                     </div>
-                                </div>
-                            ) : (
-                                <div className="bg-[#F9FAF8] p-4 rounded-2xl border border-[#E8EBE9] mb-4">
-                                    <p className="text-xs font-bold text-[var(--text-muted)] mb-3">點選標籤帶入名稱：</p>
-                                    <div className="flex flex-wrap gap-2 max-h-48 overflow-y-auto pb-2">
-                                        {quickTagsArr.map((tag, i) => (
-                                            <button key={i} onClick={() => setExpenseTitle(tag)} className={`tag-pill ${expenseTitle === tag ? 'selected' : 'bg-white border-[#E8EBE9]'}`}>{tag}</button>
-                                        ))}
-                                    </div>
-                                </div>
-                            )}
+                                )}
 
-                            <div className="space-y-3">
                                 <div className="flex space-x-2">
-                                    {recordType === 'expense' ? (
-                                        <select value={expenseCategory} onChange={e => { if (e.target.value === 'EDIT_CAT') { setActionSheet('editCategories'); setExpenseCategory(catArr[0].id); } else { setExpenseCategory(e.target.value); } }} className="input-eco bg-white px-2 w-[35%] text-sm">
-                                            {catArr.map(c => <option key={c.id} value={c.id}>{c.label}</option>)}
-                                            <option value="EDIT_CAT">⚙️ 編輯分類...</option>
-                                        </select>
-                                    ) : (
-                                        <select value={expenseCategory} onChange={e=>setExpenseCategory(e.target.value)} className="input-eco bg-white px-2 w-[35%] text-sm text-green-800">
-                                            {INCOME_CATEGORIES.map(c => <option key={c.id} value={c.id}>{c.label}</option>)}
-                                        </select>
-                                    )}
-                                    <input type="text" value={expenseTitle} onChange={e=>setExpenseTitle(e.target.value)} placeholder="項目名稱" className="input-eco bg-white flex-1 text-sm font-black" />
+                                    <input type="text" value={expenseTitle} onChange={e=>setExpenseTitle(e.target.value)} placeholder="品名 (例如：奶粉)" className="input-eco bg-[#F4F5F3] flex-1 text-sm font-black py-3" />
                                 </div>
-                                <div><input type="text" value={expenseNote} onChange={e=>setExpenseNote(e.target.value)} placeholder="備註細項 (例如：奶嘴、幾月薪水)" className="input-eco bg-white text-sm" /></div>
-                                <input type="number" value={expenseAmount} onChange={e=>setExpenseAmount(e.target.value)} placeholder="金額 ($)" className={`input-eco bg-white text-xl font-black ${recordType === 'income' ? 'text-green-600' : 'text-amber-700'}`} />
-                                <button onClick={handleRecordExpense} className={`w-full text-white font-black py-4 rounded-2xl active:scale-[0.98] transition-transform shadow-md mt-2 ${recordType === 'income' ? 'bg-green-700' : 'bg-[var(--text-dark)]'}`}>確認紀錄 (+10 經驗值)</button>
+                                <input type="text" value={expenseNote} onChange={e=>setExpenseNote(e.target.value)} placeholder="備註細項 (可不填)" className="input-eco bg-[#F4F5F3] w-full text-xs py-3 mt-2" />
+                            </div>
+
+                            <div className="mt-6 border-t border-gray-100 pt-4">
+                                <label className="text-xs font-bold text-gray-400 ml-1 mb-1 block">輸入金額</label>
+                                <div className="flex items-center space-x-3">
+                                    <div className="relative flex-1">
+                                        <span className={`absolute left-4 top-1/2 -translate-y-1/2 text-xl font-black ${recordType === 'income' ? 'text-green-500' : 'text-amber-500'}`}>$</span>
+                                        <input type="number" value={expenseAmount} onChange={e=>setExpenseAmount(e.target.value)} placeholder="0" className={`input-eco bg-[#F4F5F3] w-full text-3xl font-black pl-9 py-4 ${recordType === 'income' ? 'text-green-700' : 'text-amber-700'}`} />
+                                    </div>
+                                </div>
+                                <button onClick={handleRecordExpense} className={`w-full text-white font-black py-4 rounded-2xl active:scale-[0.98] transition-transform shadow-md mt-4 ${recordType === 'income' ? 'bg-green-600' : 'bg-[var(--text-dark)]'}`}>
+                                    確認紀錄 (+10 EXP)
+                                </button>
                             </div>
                         </div>
                     </div>
                 );
             };
 
-            const renderStatsView = () => {
+            // ★ 頁籤 4: 互動式日曆帳本 (圖4風格)
+            const renderCalendarView = () => {
+                const currentYear = currentViewMonth.getFullYear();
+                const currentMonth = currentViewMonth.getMonth(); // 0-11
+                
+                const daysInMonth = getDaysInMonth(currentYear, currentMonth);
+                const firstDay = getFirstDayOfMonth(currentYear, currentMonth); // 0 (週一) - 6 (週日)
+
+                const calendarCells = [];
+                for (let i = 0; i < firstDay; i++) calendarCells.push(null);
+                for (let i = 1; i <= daysInMonth; i++) calendarCells.push(i);
+
+                // 計算當月所有紀錄
+                let monthIn = 0; let monthOut = 0;
+                
+                // 選定日期的紀錄
+                let selectedRecords = [];
+
+                const allRecords = [ ...(data.expenses || []).map(e => ({...e, _type: 'expense'})), ...(data.incomes || []).map(i => ({...i, _type: 'income'})) ].sort((a, b) => b.id - a.id);
+                const recordsByDate = {};
+                
+                allRecords.forEach(r => {
+                    if (!recordsByDate[r.date]) recordsByDate[r.date] = [];
+                    recordsByDate[r.date].push(r);
+                    
+                    // 計算當月總計
+                    const rDate = new Date(r.date.replace(/\//g, '-'));
+                    if (rDate.getFullYear() === currentYear && rDate.getMonth() === currentMonth) {
+                        if (r._type === 'income') monthIn += r.amount;
+                        else monthOut += r.amount;
+                    }
+                });
+
+                if (recordsByDate[selectedDateStr]) {
+                    selectedRecords = recordsByDate[selectedDateStr];
+                }
+
+                const prevMonth = () => { const newD = new Date(currentViewMonth); newD.setMonth(newD.getMonth() - 1); setCurrentViewMonth(newD); };
+                const nextMonth = () => { const newD = new Date(currentViewMonth); newD.setMonth(newD.getMonth() + 1); setCurrentViewMonth(newD); };
+                const selectDate = (day) => {
+                    if(!day) return;
+                    const mStr = String(currentMonth+1).padStart(2,'0');
+                    const dStr = String(day).padStart(2,'0');
+                    setSelectedDateStr(`${currentYear}/${mStr}/${dStr}`);
+                };
+
                 const catArr = data.categories || DEFAULT_CATEGORIES;
+
                 return (
                     <div className="h-full flex flex-col pt-4 fade-in pb-32">
-                        <div className="flex justify-between items-center mb-6 px-2">
-                            <h2 className="text-2xl font-black">歷史支出統計</h2>
-                            <button onClick={() => setShowZine(true)} className="bg-[var(--text-dark)] text-white text-xs font-bold px-4 py-2 rounded-xl shadow-md active:scale-95 transition-transform">✨ 月底雜誌</button>
+                        <div className="flex justify-between items-center mb-6 px-4">
+                            <button onClick={prevMonth} className="p-2 bg-white rounded-full shadow-sm text-gray-500 font-bold">◀</button>
+                            <h2 className="text-xl font-black">{currentYear} 年 {currentMonth + 1} 月</h2>
+                            <button onClick={nextMonth} className="p-2 bg-white rounded-full shadow-sm text-gray-500 font-bold">▶</button>
                         </div>
                         
-                        <div className="space-y-4">
-                            <div className="bento-card bg-amber-50 border border-amber-200">
-                                <h3 className="font-bold text-amber-900 mb-4 flex items-center"><span className="text-2xl mr-2">📅</span> 年度總支出</h3>
-                                {statsData.yearly.length === 0 && <p className="text-sm text-amber-700/50 font-bold">目前沒有年度資料</p>}
-                                <div className="space-y-3">
-                                    {statsData.yearly.map((yData) => (
-                                        <div key={yData[0]} className="flex justify-between items-center bg-white p-4 rounded-2xl shadow-sm">
-                                            <span className="font-bold text-[var(--text-dark)]">{yData[0]}</span>
-                                            <span className="font-black text-xl text-[var(--brown-dirt)]">${yData[1].toLocaleString()}</span>
+                        {/* 日曆卡片 */}
+                        <div className="bg-white p-5 rounded-[32px] shadow-sm border border-gray-100 mb-6">
+                            <div className="grid grid-cols-7 gap-2 text-center text-xs font-bold text-gray-400 mb-4">
+                                <div>週一</div><div>週二</div><div>週三</div><div>週四</div><div>週五</div><div className="text-red-300">週六</div><div className="text-red-300">週日</div>
+                            </div>
+                            <div className="cal-grid">
+                                {calendarCells.map((day, idx) => {
+                                    if (!day) return <div key={`empty-${idx}`} className="cal-day"></div>;
+                                    
+                                    const mStr = String(currentMonth+1).padStart(2,'0');
+                                    const dStr = String(day).padStart(2,'0');
+                                    const thisDateStr = `${currentYear}/${mStr}/${dStr}`;
+                                    const isSelected = selectedDateStr === thisDateStr;
+                                    
+                                    // 檢查這天有沒有帳
+                                    const dayRecs = recordsByDate[thisDateStr] || [];
+                                    const hasExpense = dayRecs.some(r => r._type === 'expense');
+                                    const hasIncome = dayRecs.some(r => r._type === 'income');
+
+                                    return (
+                                        <div key={day} onClick={() => selectDate(day)} className={`cal-day ${isSelected ? 'active' : 'text-[var(--text-dark)] hover:bg-gray-50'}`}>
+                                            {day}
+                                            {/* 小圓點標示 */}
+                                            {dayRecs.length > 0 && !isSelected && (
+                                                <div className={`cal-dot ${hasExpense && hasIncome ? 'bg-amber-500' : hasExpense ? 'bg-red-400' : 'income'}`}></div>
+                                            )}
                                         </div>
-                                    ))}
-                                </div>
+                                    );
+                                })}
                             </div>
 
-                            <h3 className="font-bold text-lg mb-2 px-2 mt-4 flex items-center"><span className="text-2xl mr-2">📉</span> 每月明細</h3>
-                            {statsData.monthly.length === 0 && <p className="text-sm text-gray-400 font-bold text-center py-6">目前沒有月度資料，去記一筆帳吧！</p>}
-                            
-                            {statsData.monthly.map((stat) => (
-                                <div key={stat.month} className="bento-card !p-0 bg-white border border-gray-100 shadow-sm overflow-hidden mb-4">
-                                    <div className="p-5 flex justify-between items-center cursor-pointer bg-amber-50/50 active:bg-amber-100 transition-colors" onClick={() => setExpandedMonth(expandedMonth === stat.month ? null : stat.month)}>
-                                        <div>
-                                            <h3 className="font-black text-lg text-[var(--text-dark)]">{stat.month}</h3>
-                                            <p className="text-[10px] font-bold text-gray-500 mt-1">{expandedMonth === stat.month ? '▲ 點擊收合' : '▼ 點擊展開明細'}</p>
-                                        </div>
-                                        <div className="flex flex-col text-right">
-                                            <span className="font-black text-xl text-[var(--brown-dirt)]">-${stat.expenseTotal.toLocaleString()}</span>
-                                            {stat.incomeTotal > 0 && <span className="font-black text-xs text-green-600 mt-1">+{stat.incomeTotal.toLocaleString()}</span>}
-                                        </div>
-                                    </div>
-                                    {expandedMonth === stat.month && (
-                                        <div className="p-5 border-t border-gray-100 bg-white fade-in">
-                                            {stat.expenseTotal > 0 && (
-                                                <div className="mb-6 space-y-3">
-                                                    <h4 className="text-xs font-bold text-[var(--text-muted)] mb-3">📊 支出分類佔比</h4>
-                                                    {stat.categories.map((cat, idx) => (
-                                                        <div key={idx}>
-                                                            <div className="flex justify-between text-xs font-bold mb-1.5"><span className="text-[var(--text-dark)]">{cat.label}</span><div className="text-right"><span className="text-gray-400 mr-2">{cat.percent}%</span><span>${cat.amount.toLocaleString()}</span></div></div>
-                                                            <div className="stat-bar"><div className="stat-fill" style={{ width: cat.percent + '%', backgroundColor: cat.color }}></div></div>
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                            )}
-                                            <div>
-                                                <h4 className="text-xs font-bold text-[var(--text-muted)] mb-3">📝 完整明細紀錄</h4>
-                                                <div className="space-y-2 max-h-80 overflow-y-auto pr-2 pb-2">
-                                                    {stat.items.map(item => {
-                                                        const isIncome = item._type === 'income';
-                                                        let catLabel = '未分類';
-                                                        if (isIncome) {
-                                                            const incObj = INCOME_CATEGORIES.find(c => c.id === item.category);
-                                                            catLabel = incObj ? incObj.label : '收入';
-                                                        } else {
-                                                            const cObj = catArr.find(c => c.id === item.category);
-                                                            catLabel = cObj ? cObj.label : '未分類';
-                                                        }
+                            <div className="mt-6 pt-4 border-t border-gray-100 flex justify-between text-center px-4">
+                                <div><p className="text-[10px] font-bold text-gray-400">收入</p><p className="font-black text-green-600">${monthIn.toLocaleString()}</p></div>
+                                <div><p className="text-[10px] font-bold text-gray-400">支出</p><p className="font-black text-red-500">${monthOut.toLocaleString()}</p></div>
+                                <div><p className="text-[10px] font-bold text-gray-400">結餘</p><p className="font-black text-[var(--text-dark)]">${(monthIn - monthOut).toLocaleString()}</p></div>
+                            </div>
+                        </div>
 
-                                                        return (
-                                                            <div key={item.id} className="flex justify-between items-center bg-[#F4F5F3] p-3 rounded-2xl">
-                                                                <div className="flex flex-col flex-1">
-                                                                    <span className="font-bold text-sm text-[var(--text-dark)]">
-                                                                        {item.title} {item.note && <span className="text-xs font-normal text-gray-500 ml-1">({item.note})</span>}
-                                                                    </span>
-                                                                    <span className="text-[10px] text-gray-400 mt-0.5">{item.date} · {catLabel}</span>
-                                                                </div>
-                                                                <div className="flex items-center">
-                                                                    <span className={`font-black text-sm ${isIncome ? 'text-green-600' : 'text-[var(--text-dark)]'}`}>
-                                                                        {isIncome ? '+' : '-'}${item.amount.toLocaleString()}
-                                                                    </span>
-                                                                    <button onClick={() => handleOpenEditRecord(item)} className="ml-3 text-[10px] font-bold bg-gray-200 text-gray-600 px-2 py-1 rounded-md active:scale-95">編輯</button>
-                                                                    <button onClick={() => handleDeleteRecord(item.id, item._type, item.amount)} className="ml-1.5 text-[10px] text-red-500 font-bold bg-red-100 px-2 py-1 rounded-md active:scale-95">刪除</button>
-                                                                </div>
-                                                            </div>
-                                                        );
-                                                    })}
+                        {/* 當天明細列表 */}
+                        <div className="px-2">
+                            <h3 className="font-bold text-sm text-gray-500 mb-3">{selectedDateStr} 帳單明細</h3>
+                            {selectedRecords.length === 0 ? (
+                                <div className="text-center py-10 bg-gray-50 rounded-3xl border border-gray-100"><span className="text-4xl grayscale opacity-50">🧾</span><p className="text-xs font-bold text-gray-400 mt-3">當天沒有紀錄</p></div>
+                            ) : (
+                                <div className="space-y-3">
+                                    {selectedRecords.map(item => {
+                                        const isIncome = item._type === 'income';
+                                        let catLabel = '未分類'; let catColor = '#999'; let catIcon = '💰';
+                                        if (isIncome) {
+                                            const incObj = INCOME_CATEGORIES.find(c => c.id === item.category);
+                                            if (incObj) { catLabel = incObj.label; catColor = incObj.color; catIcon = incObj.icon; }
+                                        } else {
+                                            const cObj = catArr.find(c => c.id === item.category);
+                                            if (cObj) { catLabel = cObj.label.replace(/[\uD800-\uDBFF][\uDC00-\uDFFF]|[\u2600-\u27BF]/g, '').trim(); catColor = cObj.color; catIcon = cObj.icon; }
+                                        }
+
+                                        return (
+                                            <div key={item.id} className="flex justify-between items-center bg-white p-4 rounded-3xl shadow-sm border border-gray-100">
+                                                <div className="flex items-center flex-1">
+                                                    <div className="w-10 h-10 rounded-full flex items-center justify-center mr-3 text-lg" style={{backgroundColor: `${catColor}20`}}>{catIcon || '💳'}</div>
+                                                    <div className="flex flex-col">
+                                                        <span className="font-bold text-sm text-[var(--text-dark)] leading-tight">{item.title}</span>
+                                                        <span className="text-[10px] text-gray-400 mt-1">{catLabel} {item.note && `· ${item.note}`}</span>
+                                                    </div>
+                                                </div>
+                                                <div className="flex flex-col items-end">
+                                                    <span className={`font-black text-lg ${isIncome ? 'text-green-600' : 'text-[var(--text-dark)]'}`}>{isIncome ? '+' : '-'}${item.amount.toLocaleString()}</span>
+                                                    <div className="flex space-x-2 mt-1">
+                                                        <button onClick={() => handleOpenEditRecord(item)} className="text-[10px] font-bold text-gray-400 underline">編輯</button>
+                                                        <button onClick={() => handleDeleteExpense(item.id, item._type, item.amount)} className="text-[10px] font-bold text-red-400 underline">刪除</button>
+                                                    </div>
                                                 </div>
                                             </div>
-                                        </div>
-                                    )}
+                                        );
+                                    })}
                                 </div>
-                            ))}
+                            )}
                         </div>
                     </div>
                 );
@@ -805,7 +794,6 @@
                                         </div>
                                     </div>
                                 ))}
-                                {wishesArr.length === 0 && <p className="text-xs text-center text-gray-400 py-8 font-bold">目前心如止水，沒有想買的東西 🧘</p>}
                             </div>
                         </div>
                     </div>
@@ -832,20 +820,24 @@
                                     {foundBackups.map(b => (
                                         <div key={b.key} className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm flex flex-col justify-between">
                                             <div>
-                                                <p className="font-black text-sm text-amber-800 text-xs">{b.key}</p>
+                                                <p className="font-black text-sm text-amber-800 text-xs">{b.label}</p>
                                                 <div className="flex justify-between mt-2 text-[10px] text-gray-500 font-bold">
                                                     <span>記帳: {b.expensesCount} 筆</span><span>存錢: {b.savingsCount} 格</span>
                                                 </div>
                                             </div>
-                                            <button onClick={() => handleRestoreFromKey(b.raw)} className="w-full bg-amber-500 text-white text-xs font-black py-2.5 rounded-xl mt-3 active:scale-95 transition-transform">還原並覆蓋目前資料</button>
+                                            <button onClick={() => handleRestoreFromKey(b.raw, b.label)} className="w-full bg-amber-500 text-white text-xs font-black py-2.5 rounded-xl mt-3 active:scale-95 transition-transform">還原並匯入此版資料</button>
                                         </div>
                                     ))}
                                 </div>
                             </div>
                             <div className="bg-white p-4 rounded-3xl border border-gray-100 shadow-sm mb-6 space-y-3">
                                 <h4 className="font-black text-sm text-green-800">2. 文字手動備份</h4>
-                                <p className="text-xs text-gray-500 font-bold">建議複製所有資料存到 LINE 記事本！</p>
                                 <button onClick={handleExportText} className="w-full bg-[var(--green-deep)] text-white text-xs font-black py-3 rounded-xl active:scale-95 transition-transform">📥 點此複製整份資料</button>
+                            </div>
+                            <div className="bg-white p-4 rounded-3xl border border-gray-100 shadow-sm mb-6 space-y-3">
+                                <h4 className="font-black text-sm text-indigo-800">3. 從備份文字匯入還原</h4>
+                                <textarea value={importText} onChange={e=>setImportText(e.target.value)} placeholder="在此貼上 json 還原文字..." className="w-full h-24 border border-gray-200 rounded-xl p-2 text-xs font-mono outline-none" />
+                                <button onClick={handleImportText} className="w-full bg-indigo-600 text-white text-xs font-black py-3 rounded-xl active:scale-95 transition-transform">📤 立即匯入還原資料</button>
                             </div>
                             <button onClick={() => setShowRecoveryCenter(false)} className="w-full bg-gray-200 text-gray-700 font-black py-4 rounded-2xl active:scale-95 shadow-sm">關閉救援中心</button>
                         </div>
@@ -857,16 +849,15 @@
                 if (!actionSheet) return null;
                 const catArr = data.categories || DEFAULT_CATEGORIES;
                 return (
-                    <div className="fixed inset-0 z-[60] flex flex-col justify-end bg-black/40 backdrop-blur-sm animate-in fade-in">
+                    <div className="fixed inset-0 z-[115] flex flex-col justify-end bg-black/40 backdrop-blur-sm animate-in fade-in">
                         <div className="flex-1" onClick={() => { setActionSheet(null); setEditingBillId(null); setNewItemName(''); setNewItemCost(''); setNewItemNote(''); setEditingRecord(null); }} ></div>
                         <div className="bottom-sheet p-6 animate-in slide-in-from-bottom-full">
                             <div className="w-12 h-1.5 bg-[#E8EBE9] rounded-full mx-auto mb-6"></div>
 
-                            {/* 編輯明細表單 */}
+                            {/* 明細修改表單 */}
                             {actionSheet === 'editRecordSheet' && editingRecord && (
                                 <div className="space-y-4 mb-4">
                                     <h3 className="font-black text-xl mb-2 text-indigo-800">✏️ 編輯明細</h3>
-                                    <p className="text-xs text-gray-500 font-bold mb-4">修改此筆資料將自動重新計算您的資產餘額。</p>
                                     <div className="flex space-x-2">
                                         {recordType === 'expense' ? (
                                             <select value={expenseCategory} onChange={e=>setExpenseCategory(e.target.value)} className="input-eco bg-white px-2 w-[35%] text-sm">
@@ -880,19 +871,19 @@
                                         <input type="text" value={expenseTitle} onChange={e=>setExpenseTitle(e.target.value)} placeholder="項目名稱" className="input-eco bg-white flex-1 text-sm font-black" />
                                     </div>
                                     <div><input type="text" value={expenseNote} onChange={e=>setExpenseNote(e.target.value)} placeholder="備註細項" className="input-eco bg-white text-sm" /></div>
-                                    <input type="number" value={expenseAmount} onChange={e=>setExpenseAmount(e.target.value)} placeholder="金額 ($)" className={`input-eco bg-white text-xl font-black ${recordType === 'income' ? 'text-green-600' : 'text-amber-700'}`} />
+                                    <input type="number" value={expenseAmount} onChange={e=>setExpenseAmount(e.target.value)} placeholder="花費金額 ($)" className={`input-eco bg-white text-xl font-black ${recordType === 'income' ? 'text-green-600' : 'text-amber-700'}`} />
                                     <div className="flex space-x-2 mt-4"><button onClick={() => setActionSheet(null)} className="bg-gray-200 text-gray-700 font-black py-4 px-6 rounded-2xl active:scale-95">取消</button><button onClick={handleSaveEditRecord} className="flex-1 bg-indigo-600 text-white font-black py-4 rounded-2xl active:scale-95 shadow-md">儲存變更</button></div>
                                 </div>
                             )}
 
-                            {/* 自訂分類選單 */}
+                            {/* 自訂分類選單 (附帶圖示與顏色選擇) */}
                             {actionSheet === 'editCategories' && (
                                 <div className="space-y-4 mb-4">
-                                    <h3 className="font-black text-xl mb-2">⚙️ 編輯支出分類</h3>
-                                    <p className="text-xs text-gray-500 font-bold mb-4">妳可以自己新增喜歡的分類標籤與顏色。</p>
+                                    <h3 className="font-black text-xl mb-2">⚙️ 編輯卡片分類</h3>
+                                    <p className="text-xs text-gray-500 font-bold mb-4">自訂妳專屬的卡片類別與色系。</p>
                                     <div className="bg-[#F4F5F3] p-4 rounded-2xl mb-6 space-y-3">
                                         <div className="flex space-x-2 items-center">
-                                            <input type="text" value={newCatLabel} onChange={e=>setNewCatLabel(e.target.value)} placeholder="新分類 (如: 👶 育兒)" className="input-eco bg-white flex-1" />
+                                            <input type="text" value={newCatLabel} onChange={e=>setNewCatLabel(e.target.value)} placeholder="新分類名稱" className="input-eco bg-white flex-1 text-sm" />
                                             <input type="color" value={newCatColor} onChange={e=>setNewCatColor(e.target.value)} className="h-10 w-12 rounded border-none cursor-pointer p-0 bg-transparent" />
                                         </div>
                                         <button onClick={handleAddCategory} className="w-full bg-[var(--text-dark)] text-white font-bold py-3 rounded-xl mt-2">新增分類</button>
@@ -900,7 +891,7 @@
                                     <div className="space-y-2 max-h-60 overflow-y-auto pb-4">
                                         {catArr.map((c) => (
                                             <div key={c.id} className="flex justify-between items-center bg-white border border-[#E8EBE9] p-3 rounded-xl">
-                                                <div className="flex items-center space-x-3"><div style={{backgroundColor: c.color}} className="w-4 h-4 rounded-full"></div><span className="font-bold text-sm text-[var(--text-dark)]">{c.label}</span></div>
+                                                <div className="flex items-center space-x-3"><div style={{backgroundColor: c.color}} className="w-6 h-6 rounded-full flex items-center justify-center text-xs">{c.icon || c.label.substring(0,2)}</div><span className="font-bold text-sm text-[var(--text-dark)]">{c.label}</span></div>
                                                 <button onClick={() => handleDeleteCategory(c.id)} className="ml-2 text-xs text-[var(--red-soft)] font-bold bg-[#FFE8E8] px-3 py-1.5 rounded-lg active:scale-95">移除</button>
                                             </div>
                                         ))}
@@ -922,7 +913,7 @@
                             )}
                             {actionSheet === 'editBills' && (
                                 <div>
-                                    <div className="flex justify-between items-center mb-4"><h3 className="font-black text-lg">⚙️ 編輯固定支出</h3><button onClick={() => { setActionSheet(null); setEditingBillId(null); setNewItemName(''); setNewItemCost(''); setNewItemNote(''); }} className="text-sm font-bold text-[var(--text-muted)]">完成</button></div>
+                                    <div className="flex justify-between items-center mb-4"><h3 className="font-black text-lg">⚙️ 編輯固定支出雷達</h3><button onClick={() => { setActionSheet(null); setEditingBillId(null); setNewItemName(''); setNewItemCost(''); setNewItemNote(''); }} className="text-sm font-bold text-[var(--text-muted)]">完成</button></div>
                                     <div className="bg-[#F4F5F3] p-4 rounded-2xl mb-6 space-y-3">
                                         <input type="text" value={newItemName} onChange={e=>setNewItemName(e.target.value)} placeholder="名稱" className="input-eco py-3 bg-white" />
                                         <input type="number" value={newItemCost} onChange={e=>setNewItemCost(e.target.value)} placeholder="金額" className="input-eco py-3 bg-white w-full" />
@@ -950,12 +941,6 @@
                                         <input type="number" value={newItemCost} onChange={e=>setNewItemCost(e.target.value)} placeholder="金額 ($)" className="input-eco py-3 bg-white w-full" />
                                         <button onClick={handleAddWish} className="w-full bg-blue-600 text-white font-bold py-3 rounded-xl shadow-md">停入車位結凍</button>
                                     </div>
-                                    <div className="space-y-2 max-h-60 overflow-y-auto pb-4">
-                                        {(data.wishes || []).map((w) => (
-                                            <div key={w.id} className="flex justify-between items-center bg-white border border-[#E8EBE9] p-3 rounded-xl"><div className="flex flex-col"><span className="font-bold text-sm">{w.name}</span><span className="text-[var(--text-muted)] text-xs">${w.cost}</span></div><button onClick={() => setData(p => ({...p, wishes: (p.wishes || []).filter(x=>x.id!==w.id)}))} className="text-xs text-[var(--red-soft)] font-bold bg-[#FFE8E8] px-3 py-1.5 rounded-lg active:scale-95">移除</button></div>
-                                        ))}
-                                        {(data.wishes || []).length === 0 && <p className="text-xs text-center text-gray-400">目前沒有願望</p>}
-                                    </div>
                                 </div>
                             )}
                         </div>
@@ -963,30 +948,6 @@
                 );
             };
 
-            const renderZineModal = () => {
-                if (!showZine) return null;
-                return (
-                    <div className="zine-modal flex flex-col z-[130]">
-                        <div className="zine-cover h-[60vh] relative flex flex-col justify-end p-8 text-white">
-                            <button onClick={() => setShowZine(false)} className="absolute top-10 right-6 w-10 h-10 bg-black/40 backdrop-blur-md rounded-full flex items-center justify-center font-black">X</button>
-                            <p className="text-sm font-bold tracking-widest mb-2 opacity-80">MONTHLY ZINE . PIGGY</p>
-                            <h1 className="text-5xl font-black leading-tight mb-4">本月<br/>生活與財務<br/>總結</h1>
-                        </div>
-                        <div className="p-8 space-y-8 bg-[#FAF8F5] -mt-10 rounded-t-[40px] relative z-10 flex-1">
-                            <div>
-                                <h3 className="text-xl font-black mb-3">情緒與消費</h3>
-                                <p className="text-sm leading-loose text-gray-600 font-bold">這個月你成功在「想要不等於需要」煞車了，省下了資金！<br/><br/>這些錢已經為你的【夢想金庫】注入了能量。你做得非常棒，豬豬。</p>
-                            </div>
-                            <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100">
-                                <p className="text-sm font-black text-center italic text-[var(--text-dark)] leading-relaxed">「果斷捨棄不再需要的衝動，就是對未來自己最大的慷慨。」</p>
-                            </div>
-                            <button onClick={() => {alert('已匯出精美長圖！'); setShowZine(false);}} className="w-full bg-[var(--text-dark)] text-white font-black py-4 rounded-2xl shadow-lg active:scale-95 transition-transform mb-8">📥 導出雜誌分享</button>
-                        </div>
-                    </div>
-                );
-            };
-
-            // 回歸最清爽的五大頁籤 (拔除雲端訂閱)
             return (
                 <div className="min-h-screen relative bg-[var(--bg-cream)]">
                     {toastMsg && <div className="toast">{toastMsg}</div>}
@@ -995,35 +956,30 @@
                         {activeTab === 'home' && render365View()}
                         {activeTab === 'bills' && renderBillsView()}
                         {activeTab === 'expense' && renderExpenseView()}
-                        {activeTab === 'stats' && renderStatsView()}
+                        {activeTab === 'calendar' && renderCalendarView()}
                         {activeTab === 'future' && renderFutureView()}
                     </main>
 
                     <div className="fixed bottom-0 w-full z-40">
                         <nav className="bottom-nav pb-safe bg-white/95 backdrop-blur-md">
-                            <div className="max-w-md mx-auto flex justify-between items-center px-1 py-3">
-                                <button onClick={() => setActiveTab('home')} className={`flex flex-col items-center flex-1 transition-transform ${activeTab==='home'?'scale-110 text-[var(--text-dark)]':'text-[var(--text-muted)] opacity-60'}`}><span className="text-2xl mb-1">🏕️</span><span className="text-[10px] font-black tracking-tighter">365存錢</span></button>
-                                <button onClick={() => setActiveTab('bills')} className={`flex flex-col items-center flex-1 transition-transform ${activeTab==='bills'?'scale-110 text-[var(--text-dark)]':'text-[var(--text-muted)] opacity-60'}`}><span className="text-2xl mb-1">📡</span><span className="text-[10px] font-black tracking-tighter">固定支出</span></button>
-                                <button onClick={() => setActiveTab('expense')} className={`flex flex-col items-center flex-1 transition-transform ${activeTab==='expense'?'scale-110 text-[var(--text-dark)]':'text-[var(--text-muted)] opacity-60'}`}><span className="text-2xl mb-1">💸</span><span className="text-[10px] font-black tracking-tighter">每日花費</span></button>
-                                <button onClick={() => setActiveTab('stats')} className={`flex flex-col items-center flex-1 transition-transform ${activeTab==='stats'?'scale-110 text-[var(--text-dark)]':'text-[var(--text-muted)] opacity-60'}`}><span className="text-2xl mb-1">📈</span><span className="text-[10px] font-black tracking-tighter">支出統計</span></button>
-                                <button onClick={() => setActiveTab('future')} className={`flex flex-col items-center flex-1 transition-transform ${activeTab==='future'?'scale-110 text-[var(--text-dark)]':'text-[var(--text-muted)] opacity-60'}`}><span className="text-2xl mb-1">💌</span><span className="text-[10px] font-black tracking-tighter">儲蓄願望</span></button>
+                            <div className="max-w-md mx-auto flex justify-around items-center px-1 py-3">
+                                <button onClick={() => setActiveTab('home')} className={`flex flex-col items-center w-[20%] transition-transform ${activeTab==='home'?'scale-110 text-[var(--text-dark)]':'text-[var(--text-muted)] opacity-60'}`}><span className="text-xl mb-1">🏕️</span><span className="text-[9px] font-black">365存錢</span></button>
+                                <button onClick={() => setActiveTab('bills')} className={`flex flex-col items-center w-[20%] transition-transform ${activeTab==='bills'?'scale-110 text-[var(--text-dark)]':'text-[var(--text-muted)] opacity-60'}`}><span className="text-xl mb-1">📡</span><span className="text-[9px] font-black">固定支出</span></button>
+                                <button onClick={() => setActiveTab('expense')} className={`flex flex-col items-center w-[20%] transition-transform ${activeTab==='expense'?'scale-110 text-[var(--text-dark)]':'text-[var(--text-muted)] opacity-60'}`}><span className="text-xl mb-1">💸</span><span className="text-[9px] font-black">每日花費</span></button>
+                                <button onClick={() => setActiveTab('calendar')} className={`flex flex-col items-center w-[20%] transition-transform ${activeTab==='calendar'?'scale-110 text-[var(--text-dark)]':'text-[var(--text-muted)] opacity-60'}`}><span className="text-xl mb-1">📅</span><span className="text-[9px] font-black">明細/日曆</span></button>
+                                <button onClick={() => setActiveTab('future')} className={`flex flex-col items-center w-[20%] transition-transform ${activeTab==='future'?'scale-110 text-[var(--text-dark)]':'text-[var(--text-muted)] opacity-60'}`}><span className="text-xl mb-1">💌</span><span className="text-[9px] font-black">儲蓄願望</span></button>
                             </div>
                         </nav>
                     </div>
 
                     {renderEditOverlays()}
                     {renderRecoveryCenterModal()}
-                    {renderZineModal()}
                 </div>
             );
         }
 
         const root = ReactDOM.createRoot(document.getElementById('root'));
-        root.render(
-            <ErrorBoundary>
-                <App />
-            </ErrorBoundary>
-        );
+        root.render(<ErrorBoundary><App /></ErrorBoundary>);
     </script>
 </body>
 </html>

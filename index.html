@@ -332,6 +332,24 @@
                 showToast('🗑️ 已刪除該筆紀錄');
             };
 
+            // ★ 新增：AI 標籤點擊與價格自動記憶系統
+            const handleTagClick = (tag) => {
+                setExpenseTitle(tag);
+                
+                // 1. 搜尋歷史紀錄看上次買這個標籤是多少錢 (自動記憶最新價格)
+                const lastRecord = (data.expenses || []).find(e => e.title === tag);
+                
+                if (lastRecord) {
+                    setExpenseAmount(lastRecord.amount); // 帶入上次買的金額
+                } 
+                // 2. 如果沒歷史紀錄，帶入特定項目的預設值
+                else if (tag === '成成的煙') {
+                    setExpenseAmount(110);
+                } else if (tag === '豬豬的煙') {
+                    setExpenseAmount(130);
+                }
+            };
+
             const toggleBillStatus = (billId) => { setData(p => ({ ...p, bills: (p.bills || []).map(b => { if (b.id === billId) { showToast(!b.paid ? `✅ 已標記支付：${b.name}` : `↩️ 已取消支付：${b.name}`); return { ...b, paid: !b.paid }; } return b; })})); };
             const handleDefrost = (wishId) => {
                 const wish = (data.wishes || []).find(w => w.id === wishId);
@@ -585,7 +603,7 @@
                                 ) : (
                                     <div className="flex flex-wrap gap-1.5 mb-3 max-h-24 overflow-y-auto">
                                         {quickTagsArr.map((tag, i) => (
-                                            <button key={i} onClick={() => setExpenseTitle(tag)} className={`tag-pill !text-[11px] !px-2.5 !py-1 ${expenseTitle === tag ? 'selected' : 'bg-white border-[#E8EBE9]'}`}>{tag}</button>
+                                            <button key={i} onClick={() => handleTagClick(tag)} className={`tag-pill !text-[11px] !px-2.5 !py-1 ${expenseTitle === tag ? 'selected' : 'bg-white border-[#E8EBE9]'}`}>{tag}</button>
                                         ))}
                                     </div>
                                 )}

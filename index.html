@@ -15,6 +15,9 @@
   <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  
+  <!-- 載入 SortableJS (用於拖曳排序功能) -->
+  <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
 
   <style>
     /* 隱藏原生捲軸，讓介面更像 App */
@@ -27,13 +30,17 @@
     @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
     .animate-fade-in { animation: fadeIn 0.2s ease-out forwards; }
     .animate-slide-up { animation: slideUp 0.3s ease-out forwards; }
+    
+    /* 拖曳時的卡片樣式 */
+    .sortable-ghost { opacity: 0.4; }
+    .sortable-drag { cursor: grabbing !important; transform: scale(1.05); box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
   </style>
 </head>
 <body>
   <div id="root"></div>
 
   <script type="text/babel">
-    const { useState, useEffect } = React;
+    const { useState, useEffect, useRef } = React;
 
     // 自訂 Hook：用來將資料自動存入瀏覽器的 Local Storage
     const useLocalStorage = (key, initialValue) => {
@@ -188,12 +195,38 @@
         );
       };
 
-      // --- 2. 固定支出頁面 (含編輯與期限功能) ---
+      // --- 2. 固定支出頁面 (含拖曳與手動排序) ---
       const RenderFixedExpenses = () => {
-        // 編輯用的狀態
+        const gridRef = useRef(null);
         const [showModal, setShowModal] = useState(false);
         const [editingId, setEditingId] = useState(null);
         const [formData, setFormData] = useState({ name: '', amount: '', dueDate: '' });
+
+        // 初始化拖曳功能
+        useEffect(() => {
+          if (!gridRef.current) return;
+          
+          const sortable = new Sortable(gridRef.current, {
+            animation: 200,
+            delay: 200, // 長按 200 毫秒才能拖曳 (防止一般滑動頁面時誤觸)
+            delayOnTouchOnly: true,
+            draggable: '.expense-card', // 只允許拖曳卡片
+            filter: 'button', // 點擊按鈕時不觸發拖曳
+            onUpdate: (evt) => {
+              const oldIndex = evt.oldIndex;
+              const newIndex = evt.newIndex;
+              
+              setFixedExpenses(prev => {
+                const newArr = [...prev];
+                const [movedItem] = newArr.splice(oldIndex, 1);
+                newArr.splice(newIndex, 0, movedItem);
+                return newArr;
+              });
+            }
+          });
+
+          return () => sortable.destroy();
+        }, [activeTab]); // 當切換 Tab 時重新綁定
 
         const togglePaid = (id) => {
           setFixedExpenses(fixedExpenses.map(exp => 
@@ -207,34 +240,29 @@
           }
         };
 
-        // 打開編輯視窗
         const openEditModal = (exp) => {
           setEditingId(exp.id);
           setFormData({ name: exp.name, amount: exp.amount, dueDate: exp.dueDate || '' });
           setShowModal(true);
         };
 
-        // 打開新增視窗
         const openAddModal = () => {
           setEditingId(null);
           setFormData({ name: '', amount: '', dueDate: '' });
           setShowModal(true);
         };
 
-        // 儲存支出 (新增或更新)
         const saveExpense = (e) => {
           e.preventDefault();
           if (!formData.name || !formData.amount) return;
 
           if (editingId) {
-            // 更新舊有
             setFixedExpenses(fixedExpenses.map(exp =>
               exp.id === editingId 
                 ? { ...exp, name: formData.name, amount: Number(formData.amount), dueDate: formData.dueDate } 
                 : exp
             ));
           } else {
-            // 新增
             const newExp = {
               id: Date.now(),
               name: formData.name,
@@ -247,11 +275,25 @@
           setShowModal(false);
         };
 
-        // 刪除支出
         const deleteExpense = () => {
           if (window.confirm('確定要刪除這個支出項目嗎？')) {
             setFixedExpenses(fixedExpenses.filter(exp => exp.id !== editingId));
             setShowModal(false);
+          }
+        };
+
+        // 按鈕手動移動排序
+        const moveItem = (direction) => {
+          const index = fixedExpenses.findIndex(exp => exp.id === editingId);
+          if (index < 0) return;
+          
+          let newArr = [...fixedExpenses];
+          if (direction === 'up' && index > 0) {
+            [newArr[index - 1], newArr[index]] = [newArr[index], newArr[index - 1]];
+            setFixedExpenses(newArr);
+          } else if (direction === 'down' && index < newArr.length - 1) {
+            [newArr[index + 1], newArr[index]] = [newArr[index], newArr[index + 1]];
+            setFixedExpenses(newArr);
           }
         };
 
@@ -266,14 +308,18 @@
               </button>
             </div>
             
-            <div className="bg-[#FFF4D2] text-[#A07043] p-3 rounded-xl text-sm font-bold text-center mb-4">
-              點擊方塊內的打勾作「已付紀錄」，不扣除資產喔！
+            <div className="bg-[#FFF4D2] text-[#A07043] p-3 rounded-xl text-[13px] font-bold text-center mb-4 leading-relaxed">
+              💡 提示：長按卡片可拖曳排序。<br/>打勾作「已付紀錄」，不扣除資產喔！
             </div>
 
-            <div className="grid grid-cols-3 gap-3">
-              {fixedExpenses.map(exp => (
-                <div key={exp.id} className="bg-white rounded-2xl p-3 shadow-sm border border-gray-100 flex flex-col justify-between relative group">
-                  {/* 編輯按鈕 (小鉛筆) */}
+            {/* 加入 ref 讓 SortableJS 綁定 */}
+            <div className="grid grid-cols-3 gap-3" ref={gridRef}>
+              {fixedExpenses.map((exp, index) => (
+                <div 
+                  key={exp.id} 
+                  className="expense-card bg-white rounded-2xl p-3 shadow-sm border border-gray-100 flex flex-col justify-between relative select-none touch-manipulation"
+                >
+                  {/* 編輯按鈕 */}
                   <button 
                     onClick={() => openEditModal(exp)}
                     className="absolute top-2 right-2 text-gray-300 hover:text-[#A07043] p-1 rounded-full transition-colors z-10 bg-white shadow-[0_0_10px_white]"
@@ -281,7 +327,7 @@
                     <i className="fa-solid fa-pen text-[10px]"></i>
                   </button>
 
-                  <div className="mb-2">
+                  <div className="mb-2 pointer-events-none">
                     <div className="text-gray-600 font-bold text-sm mb-1 truncate pr-4" title={exp.name}>{exp.name}</div>
                     <div className="text-lg font-black text-gray-800">${exp.amount.toLocaleString()}</div>
                     
@@ -305,10 +351,10 @@
                 </div>
               ))}
 
-              {/* 新增固定支出按鈕 */}
+              {/* 新增按鈕 (排除在拖曳項目之外) */}
               <button 
                 onClick={openAddModal}
-                className="bg-gray-50 rounded-2xl p-3 border-2 border-dashed border-gray-200 flex flex-col items-center justify-center gap-2 text-gray-400 hover:bg-gray-100 transition-colors min-h-[120px]"
+                className="no-drag bg-gray-50 rounded-2xl p-3 border-2 border-dashed border-gray-200 flex flex-col items-center justify-center gap-2 text-gray-400 hover:bg-gray-100 transition-colors min-h-[120px]"
               >
                 <i className="fa-solid fa-plus text-xl"></i>
                 <span className="text-xs font-bold">新增支出</span>
@@ -363,10 +409,24 @@
                         value={formData.dueDate}
                         onChange={(e) => setFormData({...formData, dueDate: e.target.value})}
                       />
-                      <p className="text-[10px] text-gray-400 mt-1 pl-1">只需填寫數字，例如 5 號就填 5。</p>
                     </div>
                     
-                    <div className="pt-4 flex gap-3">
+                    {/* 手動調整排序按鈕 (僅編輯時顯示) */}
+                    {editingId && (
+                      <div className="flex justify-between items-center bg-gray-50 p-2 rounded-xl mt-2 border border-gray-100">
+                        <span className="text-xs font-bold text-gray-400 pl-2">調整順序：</span>
+                        <div className="flex gap-2">
+                          <button type="button" onClick={() => moveItem('up')} className="bg-white px-3 py-1.5 rounded-lg shadow-sm text-[#A07043] font-bold text-xs border border-gray-200 active:bg-gray-100">
+                            <i className="fa-solid fa-arrow-up mr-1"></i> 往前移
+                          </button>
+                          <button type="button" onClick={() => moveItem('down')} className="bg-white px-3 py-1.5 rounded-lg shadow-sm text-[#A07043] font-bold text-xs border border-gray-200 active:bg-gray-100">
+                            <i className="fa-solid fa-arrow-down mr-1"></i> 往後移
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                    
+                    <div className="pt-2 flex gap-3">
                       {editingId && (
                         <button 
                           type="button"
@@ -458,7 +518,7 @@
         );
       };
 
-      // --- 4. 明細日曆頁面 ---
+      // --- 4. 明細日曆頁 ---
       const RenderCalendar = () => {
         return (
           <div className="p-4 pb-24 space-y-4">
@@ -672,3 +732,5 @@
   </script>
 </body>
 </html>
+
+

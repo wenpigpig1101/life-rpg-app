@@ -42,7 +42,7 @@
   <script type="text/babel">
     const { useState, useEffect, useRef } = React;
 
-    // 自訂 Hook：用來將資料自動存入瀏覽器的 Local Storage
+    // --- 自訂 Hook：本機儲存 ---
     const useLocalStorage = (key, initialValue) => {
       const [value, setValue] = useState(() => {
         try {
@@ -60,57 +60,484 @@
       return [value, setValue];
     };
 
-    const App = () => {
-      const [activeTab, setActiveTab] = useState('daily'); 
-      
-      // --- 狀態資料 (皆加入 Local Storage) ---
-      
-      // 1. 365存錢
-      const [savedDays, setSavedDays] = useLocalStorage('piggy_saved_days', []);
+    // --- 預設固定支出資料 ---
+    const defaultFixed = [
+      { id: 1, name: '房租', amount: 30000, isPaid: true, dueDate: '30' },
+      { id: 2, name: '豬手機話費', amount: 3800, isPaid: false, dueDate: '8' },
+      { id: 3, name: '中信卡費', amount: 6402, isPaid: false, dueDate: '25' },
+      { id: 4, name: '婷', amount: 30000, isPaid: false, dueDate: '10' },
+      { id: 5, name: '美金', amount: 10000, isPaid: false, dueDate: '15' },
+      { id: 6, name: '油錢', amount: 10000, isPaid: false, dueDate: '' },
+    ];
+
+    // --- 頂部 Header 元件 ---
+    const Header = () => (
+      <div className="flex justify-between items-center p-5 bg-[#FDFCF8] sticky top-0 z-40 shadow-sm">
+        <div className="flex items-center gap-3">
+          <div className="w-12 h-12 rounded-full bg-white shadow-sm flex items-center justify-center text-3xl border border-gray-100">
+            🐷
+          </div>
+          <div>
+            <h1 className="font-bold text-gray-800 text-lg flex items-center gap-1">
+              Lv.1 豬豬探索者 🌱
+            </h1>
+            <div className="h-1.5 w-32 bg-gray-200 rounded-full mt-1.5">
+              <div className="h-full bg-gray-400 rounded-full w-1/5"></div>
+            </div>
+          </div>
+        </div>
+        <button className="bg-pink-100 text-pink-500 px-3 py-1.5 rounded-full text-xs font-bold flex items-center gap-1 shadow-sm active:scale-95 transition-transform">
+          <i className="fa-solid fa-screwdriver-wrench"></i> 救援
+        </button>
+      </div>
+    );
+
+    // --- 底部導航列元件 ---
+    const BottomNav = ({ activeTab, setActiveTab }) => {
+      const navItems = [
+        { id: 'savings', icon: 'fa-campground', label: '365存錢' },
+        { id: 'fixed', icon: 'fa-satellite-dish', label: '固定支出' },
+        { id: 'daily', icon: 'fa-wallet', label: '每日花費' },
+        { id: 'business', icon: 'fa-store', label: '小舖營收' },
+        { id: 'calendar', icon: 'fa-calendar', label: '明細日曆' },
+        { id: 'stocks', icon: 'fa-chart-line', label: '股票投資' },
+      ];
+
+      return (
+        <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 px-1 py-2 flex justify-around items-center shadow-[0_-4px_20px_rgba(0,0,0,0.03)] z-50">
+          <div className="w-full max-w-md mx-auto flex justify-between px-1">
+            {navItems.map(item => (
+              <button
+                key={item.id}
+                onClick={() => setActiveTab(item.id)}
+                className={`flex flex-col items-center justify-center flex-1 py-1 gap-1 transition-colors
+                  ${activeTab === item.id ? 'text-[#A07043]' : 'text-gray-300'}`}
+              >
+                <i className={`fa-solid ${item.icon} text-lg mb-0.5 ${activeTab === item.id ? 'opacity-100 scale-110' : 'opacity-60'} transition-transform`}></i>
+                <span className={`text-[9px] font-bold whitespace-nowrap ${activeTab === item.id ? 'text-[#A07043]' : 'text-gray-400'}`}>
+                  {item.label}
+                </span>
+              </button>
+            ))}
+          </div>
+        </div>
+      );
+    };
+
+    // --- 各個頁面元件 (獨立出來，避免輸入時失去焦點) ---
+
+    // 1. 365 存錢
+    const ViewSavings = ({ savedDays, setSavedDays }) => {
       const savingsGoal = 66795;
       const currentSaved = savedDays.reduce((sum, day) => sum + day, 0);
 
-      // 2. 固定支出
-      const defaultFixed = [
-        { id: 1, name: '房租', amount: 30000, isPaid: true, dueDate: '30' },
-        { id: 2, name: '豬手機話費', amount: 3800, isPaid: false, dueDate: '8' },
-        { id: 3, name: '中信卡費', amount: 6402, isPaid: false, dueDate: '25' },
-        { id: 4, name: '婷', amount: 30000, isPaid: false, dueDate: '10' },
-        { id: 5, name: '美金', amount: 10000, isPaid: false, dueDate: '15' },
-        { id: 6, name: '油錢', amount: 10000, isPaid: false, dueDate: '' },
-      ];
-      const [fixedExpenses, setFixedExpenses] = useLocalStorage('piggy_fixed_expenses', defaultFixed);
+      const toggleDay = (day) => {
+        if (savedDays.includes(day)) {
+          setSavedDays(savedDays.filter(d => d !== day));
+        } else {
+          setSavedDays([...savedDays, day]);
+        }
+      };
 
-      // 3. 每日花費
-      const floatingAssets = 152400;
+      return (
+        <div className="p-4 pb-24 space-y-4">
+          <div className="bg-[#FFF4D2] rounded-3xl p-6 shadow-sm">
+            <div className="text-[#A07043] font-bold text-sm mb-2 flex items-center gap-1">
+              🎯 365天無痛存錢法
+            </div>
+            <div className="text-3xl font-black text-gray-800 mb-6">
+              累計已存：${currentSaved.toLocaleString()}
+            </div>
+            <div className="flex justify-between text-xs font-bold text-[#A07043] mb-2">
+              <span>目標：${savingsGoal.toLocaleString()}</span>
+              <span>{Math.round((currentSaved / savingsGoal) * 100)}%</span>
+            </div>
+            <div className="h-3 w-full bg-[#F5E2A8] rounded-full overflow-hidden">
+              <div 
+                className="h-full bg-[#E5B84B] rounded-full transition-all duration-500" 
+                style={{ width: `${Math.min(100, (currentSaved / savingsGoal) * 100)}%` }}
+              ></div>
+            </div>
+          </div>
+          <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-100">
+            <h3 className="text-center font-bold text-gray-600 mb-4">每天選一個數字存錢並打卡吧！</h3>
+            <div className="grid grid-cols-7 gap-2">
+              {Array.from({ length: 365 }, (_, i) => i + 1).map(day => (
+                <button
+                  key={day}
+                  onClick={() => toggleDay(day)}
+                  className={`aspect-square flex items-center justify-center rounded-xl font-bold text-[11px] sm:text-xs transition-colors
+                    ${savedDays.includes(day) ? 'bg-[#E5B84B] text-white shadow-inner scale-95' : 'bg-gray-100 text-gray-400 hover:bg-gray-200'}`}
+                >
+                  {day}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      );
+    };
 
-      // 4. 小舖營收
-      const [bizRecords, setBizRecords] = useLocalStorage('piggy_biz_records', []);
+    // 2. 固定支出
+    const ViewFixed = ({ fixedExpenses, setFixedExpenses }) => {
+      const gridRef = useRef(null);
+      const [showModal, setShowModal] = useState(false);
+      const [editingId, setEditingId] = useState(null);
+      const [formData, setFormData] = useState({ name: '', amount: '', dueDate: '' });
+
+      // 拖曳功能
+      useEffect(() => {
+        if (!gridRef.current) return;
+        const sortable = new Sortable(gridRef.current, {
+          animation: 250, delay: 200, delayOnTouchOnly: true, touchStartThreshold: 5,
+          draggable: '.expense-card', filter: 'button, .no-drag', preventOnFilter: false,
+          onUpdate: (evt) => {
+            setFixedExpenses(prev => {
+              const newArr = [...prev];
+              const [movedItem] = newArr.splice(evt.oldIndex, 1);
+              newArr.splice(evt.newIndex, 0, movedItem);
+              return newArr;
+            });
+          }
+        });
+        return () => sortable.destroy();
+      }, []);
+
+      const togglePaid = (id, e) => {
+        e.stopPropagation();
+        setFixedExpenses(fixedExpenses.map(exp => exp.id === id ? { ...exp, isPaid: !exp.isPaid } : exp));
+      };
+      
+      const openEditModal = (exp, e) => {
+        e.stopPropagation(); setEditingId(exp.id); setFormData({ name: exp.name, amount: exp.amount, dueDate: exp.dueDate || '' }); setShowModal(true);
+      };
+      
+      const saveExpense = (e) => {
+        e.preventDefault();
+        if (editingId) {
+          setFixedExpenses(fixedExpenses.map(exp => exp.id === editingId ? { ...exp, name: formData.name, amount: Number(formData.amount), dueDate: formData.dueDate } : exp));
+        } else {
+          setFixedExpenses([...fixedExpenses, { id: Date.now(), name: formData.name, amount: Number(formData.amount), dueDate: formData.dueDate, isPaid: false }]);
+        }
+        setShowModal(false);
+      };
+      
+      const deleteExpense = () => {
+        if (window.confirm('確定要刪除這個支出項目嗎？')) {
+          setFixedExpenses(fixedExpenses.filter(exp => exp.id !== editingId));
+          setShowModal(false);
+        }
+      };
+
+      const moveItem = (direction) => {
+        const index = fixedExpenses.findIndex(exp => exp.id === editingId);
+        if (index < 0) return;
+        let newArr = [...fixedExpenses];
+        if (direction === 'up' && index > 0) {
+          [newArr[index - 1], newArr[index]] = [newArr[index], newArr[index - 1]];
+          setFixedExpenses(newArr);
+        } else if (direction === 'down' && index < newArr.length - 1) {
+          [newArr[index + 1], newArr[index]] = [newArr[index], newArr[index + 1]];
+          setFixedExpenses(newArr);
+        }
+      };
+
+      return (
+        <div className="p-4 pb-24 space-y-4">
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-xl font-bold text-[#A07043] flex items-center gap-2">
+              <i className="fa-solid fa-satellite-dish text-gray-600"></i> 固定支出雷達
+            </h2>
+            <button onClick={() => {if(window.confirm('確定要將所有固定支出重置為「未付」嗎？')) setFixedExpenses(fixedExpenses.map(exp => ({ ...exp, isPaid: false })))}} className="bg-[#FFF4D2] text-[#A07043] px-3 py-1.5 rounded-full text-xs font-bold flex items-center gap-1 shadow-sm active:scale-95 transition-transform">
+              <i className="fa-solid fa-rotate-right"></i> 每月重置
+            </button>
+          </div>
+          <div className="bg-[#FFF4D2] text-[#A07043] p-3 rounded-xl text-[13px] font-bold text-center mb-4 leading-relaxed shadow-sm">
+            💡 提示：長按卡片可拖曳排序。<br/>打勾作「已付紀錄」，不扣除資產喔！
+          </div>
+          <div className="grid grid-cols-3 gap-3" ref={gridRef}>
+            {fixedExpenses.map((exp) => (
+              <div key={exp.id} className="expense-card bg-white rounded-2xl p-3 shadow-sm border border-gray-100 flex flex-col justify-between relative">
+                <button onClick={(e) => openEditModal(exp, e)} className="absolute top-0 right-0 w-10 h-10 flex items-center justify-center text-gray-300 hover:text-[#A07043] z-10 active:opacity-50">
+                  <i className="fa-solid fa-pen text-[12px]"></i>
+                </button>
+                <div className="mb-2 pointer-events-none pr-3 mt-1">
+                  <div className="text-gray-600 font-bold text-sm mb-1 truncate">{exp.name}</div>
+                  <div className="text-[17px] font-black text-gray-800">${exp.amount.toLocaleString()}</div>
+                  <div className="h-4 mt-1.5">
+                    {exp.dueDate && (
+                      <span className="inline-block bg-[#FFF4D2] text-[#A07043] text-[9px] px-1.5 py-0.5 rounded-md font-bold shadow-sm">
+                        期限: {exp.dueDate}號
+                      </span>
+                    )}
+                  </div>
+                </div>
+                <button onClick={(e) => togglePaid(exp.id, e)} className={`w-full py-2 rounded-lg text-xs font-bold transition-all active:scale-95 ${exp.isPaid ? 'bg-[#D1F2D1] text-[#2C7A2C] shadow-inner' : 'bg-gray-100 text-gray-400'}`}>
+                  {exp.isPaid ? '✅ 已付' : '⬜ 未付'}
+                </button>
+              </div>
+            ))}
+            <button onClick={() => {setEditingId(null); setFormData({name:'', amount:'', dueDate:''}); setShowModal(true);}} className="no-drag bg-gray-50 rounded-2xl p-3 border-2 border-dashed border-gray-200 flex flex-col items-center justify-center gap-2 text-gray-400 hover:bg-gray-100 transition-colors min-h-[120px] active:bg-gray-200">
+              <i className="fa-solid fa-plus text-xl"></i><span className="text-xs font-bold">新增支出</span>
+            </button>
+          </div>
+
+          {showModal && (
+            <div className="fixed inset-0 bg-black/50 z-50 flex justify-center items-center p-4 animate-fade-in backdrop-blur-sm">
+              <div className="bg-white rounded-3xl w-full max-w-sm p-6 shadow-2xl animate-slide-up relative">
+                <button type="button" onClick={() => setShowModal(false)} className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center bg-gray-100 text-gray-500 rounded-full font-bold active:scale-90 transition-transform">✕</button>
+                <h3 className="text-xl font-bold text-[#A07043] mb-4 flex items-center gap-2">
+                  {editingId ? <i className="fa-solid fa-pen"></i> : <i className="fa-solid fa-plus"></i>}
+                  {editingId ? '編輯固定支出' : '新增固定支出'}
+                </h3>
+                <form onSubmit={saveExpense} className="space-y-4">
+                  <div>
+                    <label className="block text-xs font-bold text-gray-500 mb-1">項目名稱</label>
+                    <input type="text" placeholder="例如: 房租、電話費" className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-[#E5B84B]" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} required/>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-gray-500 mb-1">每月金額</label>
+                    <input type="number" placeholder="例如: 15000" className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-[#E5B84B]" value={formData.amount} onChange={e => setFormData({...formData, amount: e.target.value})} required/>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-gray-500 mb-1">最後繳費期限 (幾號) - 選填</label>
+                    <input type="number" min="1" max="31" placeholder="例如: 5" className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-[#E5B84B]" value={formData.dueDate} onChange={e => setFormData({...formData, dueDate: e.target.value})}/>
+                  </div>
+                  {editingId && (
+                    <div className="flex justify-between items-center bg-gray-50 p-2 rounded-xl mt-2 border border-gray-100">
+                      <span className="text-xs font-bold text-gray-400 pl-2">調整順序：</span>
+                      <div className="flex gap-2">
+                        <button type="button" onClick={() => moveItem('up')} className="bg-white px-3 py-1.5 rounded-lg shadow-sm text-[#A07043] font-bold text-xs border border-gray-200 active:bg-gray-100 transition-colors"><i className="fa-solid fa-arrow-up mr-1"></i> 往前移</button>
+                        <button type="button" onClick={() => moveItem('down')} className="bg-white px-3 py-1.5 rounded-lg shadow-sm text-[#A07043] font-bold text-xs border border-gray-200 active:bg-gray-100 transition-colors"><i className="fa-solid fa-arrow-down mr-1"></i> 往後移</button>
+                      </div>
+                    </div>
+                  )}
+                  <div className="pt-2 flex gap-3">
+                    {editingId && (
+                      <button type="button" onClick={deleteExpense} className="flex-1 bg-red-50 text-red-500 font-bold py-3 rounded-xl hover:bg-red-100 transition-colors active:scale-95">刪除</button>
+                    )}
+                    <button type="submit" className={`font-bold py-3 rounded-xl transition-all active:scale-95 ${editingId ? 'flex-[2]' : 'w-full'} bg-[#A07043] text-white hover:bg-[#8A5E35] shadow-md`}>
+                      {editingId ? '儲存變更' : '新增至雷達'}
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          )}
+        </div>
+      );
+    };
+
+    // 3. 每日花費
+    const ViewDaily = () => (
+      <div className="p-4 pb-24 space-y-4">
+        <div className="grid grid-cols-2 gap-4">
+          <div className="bg-white rounded-3xl p-5 shadow-sm border border-gray-100 relative">
+            <i className="fa-solid fa-gear absolute top-4 right-4 text-gray-400 text-sm"></i>
+            <div className="text-gray-500 font-bold text-sm mb-1">現有浮動資產</div>
+            <div className="text-2xl font-black text-[#5B7B61]">$152,400</div>
+          </div>
+          <div className="bg-white rounded-3xl p-5 shadow-sm border border-gray-100 relative">
+            <div className="absolute top-4 right-4 bg-pink-100 text-pink-500 text-[10px] px-2 py-0.5 rounded font-bold">歸零</div>
+            <div className="text-gray-500 font-bold text-sm mb-1 flex items-center gap-1">本月累計支出 📉</div>
+            <div className="text-2xl font-black text-[#C69C6D]">$0</div>
+          </div>
+        </div>
+        <div className="flex justify-between items-center mt-6 mb-2">
+          <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">✍️ 快速記開銷</h2>
+          <button className="bg-gray-100 text-gray-500 px-3 py-1.5 rounded-full text-xs font-bold flex items-center gap-1"><i className="fa-solid fa-gear"></i> 編輯標籤</button>
+        </div>
+        <div className="bg-white rounded-3xl p-5 shadow-sm border border-gray-100 space-y-6">
+          <div className="flex bg-gray-100 rounded-xl p-1">
+            <button className="flex-1 bg-white shadow-sm rounded-lg py-2 font-bold text-gray-800">支出</button>
+            <button className="flex-1 rounded-lg py-2 font-bold text-gray-400">收入</button>
+          </div>
+          <div>
+            <div className="text-gray-500 text-sm font-bold mb-3">選擇分類：</div>
+            <div className="grid grid-cols-4 gap-4">
+              <div className="flex flex-col items-center gap-2"><div className="w-14 h-14 rounded-full border-2 border-gray-800 flex items-center justify-center text-2xl bg-orange-50 shadow-sm">🍔</div><span className="text-xs font-bold text-gray-800">餐飲</span></div>
+              <div className="flex flex-col items-center gap-2 opacity-50"><div className="w-14 h-14 rounded-full bg-pink-50 flex items-center justify-center text-2xl">🛍️</div><span className="text-xs font-bold text-gray-500">購物</span></div>
+              <div className="flex flex-col items-center gap-2 opacity-50"><div className="w-14 h-14 rounded-full bg-blue-50 flex items-center justify-center text-2xl">🚗</div><span className="text-xs font-bold text-gray-500">交通</span></div>
+              <div className="flex flex-col items-center gap-2 opacity-50"><div className="w-14 h-14 rounded-full bg-green-50 flex items-center justify-center text-2xl">🏠</div><span className="text-xs font-bold text-gray-500">生活</span></div>
+            </div>
+          </div>
+          <div className="flex items-center justify-between bg-gray-50 p-4 rounded-2xl border border-gray-100">
+            <div className="flex items-center gap-2 text-gray-500 font-bold text-sm"><i className="fa-regular fa-calendar"></i> 記帳日期</div>
+            <div className="font-black text-gray-800 bg-white px-4 py-2 rounded-xl shadow-sm border border-gray-100">今天</div>
+          </div>
+        </div>
+      </div>
+    );
+
+    // 4. 小舖營收 (已將表單狀態內化，解決失去焦點問題)
+    const ViewBusiness = ({ bizRecords, setBizRecords }) => {
       const [bizForm, setBizForm] = useState({ 
-        type: 'income', 
-        date: new Date().toISOString().split('T')[0], 
-        name: '', 
-        qty: '', 
-        price: '' 
+        type: 'income', date: new Date().toISOString().split('T')[0], name: '', qty: '', price: '' 
       });
 
-      // 5. 股票投資
-      const [stockRecords, setStockRecords] = useLocalStorage('piggy_stock_records', []);
+      const totalRevenue = bizRecords.filter(r => r.type === 'income').reduce((sum, r) => sum + r.total, 0);
+      const totalCost = bizRecords.filter(r => r.type === 'cost').reduce((sum, r) => sum + r.total, 0);
+      const netProfit = totalRevenue - totalCost;
+      const currentTotal = (Number(bizForm.qty) || 0) * (Number(bizForm.price) || 0);
+
+      const handleBizSubmit = (e) => {
+        e.preventDefault();
+        const qty = Number(bizForm.qty);
+        const price = Number(bizForm.price);
+        if (!bizForm.name || !qty || !price) return;
+        
+        const newRecord = {
+          id: Date.now(), type: bizForm.type, date: bizForm.date, name: bizForm.name, qty: qty, price: price, total: qty * price
+        };
+        setBizRecords([newRecord, ...bizRecords]);
+        setBizForm({ ...bizForm, name: '', qty: '', price: '' });
+      };
+
+      const removeBizRecord = (id) => {
+        if(window.confirm('確定要刪除這筆紀錄嗎？')) {
+          setBizRecords(bizRecords.filter(record => record.id !== id));
+        }
+      };
+
+      return (
+        <div className="p-4 pb-24 space-y-4">
+          <div className="grid grid-cols-2 gap-3 mb-2">
+            <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
+              <div className="text-gray-400 font-bold text-xs mb-1">本月營業額 (收)</div>
+              <div className="text-xl font-black text-[#2C7A2C]">${totalRevenue.toLocaleString()}</div>
+            </div>
+            <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
+              <div className="text-gray-400 font-bold text-xs mb-1">本月總成本 (支)</div>
+              <div className="text-xl font-black text-[#D35400]">${totalCost.toLocaleString()}</div>
+            </div>
+          </div>
+          <div className="bg-gradient-to-r from-[#A07043] to-[#C69C6D] rounded-2xl p-5 shadow-sm text-white">
+            <div className="font-bold text-sm mb-1 opacity-90 flex items-center gap-2">
+              <i className="fa-solid fa-sack-dollar"></i> 本月淨利潤 (毛利)
+            </div>
+            <div className="text-4xl font-black">{netProfit >= 0 ? '+' : ''}${netProfit.toLocaleString()}</div>
+          </div>
+
+          <div className="bg-white rounded-3xl p-5 shadow-sm border border-gray-100">
+            <h2 className="font-bold text-gray-800 mb-4 flex items-center gap-2">
+              <i className="fa-solid fa-pen-to-square text-[#A07043]"></i> 快速記一筆
+            </h2>
+            <form onSubmit={handleBizSubmit} className="space-y-4">
+              <div className="flex bg-gray-100 rounded-xl p-1">
+                <button type="button" onClick={() => setBizForm({...bizForm, type: 'income'})} className={`flex-1 rounded-lg py-2 text-sm font-bold transition-all shadow-sm ${bizForm.type === 'income' ? 'bg-white text-[#2C7A2C]' : 'text-gray-400 shadow-none hover:bg-gray-200'}`}>💰 記收入 (賣出)</button>
+                <button type="button" onClick={() => setBizForm({...bizForm, type: 'cost'})} className={`flex-1 rounded-lg py-2 text-sm font-bold transition-all shadow-sm ${bizForm.type === 'cost' ? 'bg-white text-[#D35400]' : 'text-gray-400 shadow-none hover:bg-gray-200'}`}>📦 記成本 (進貨)</button>
+              </div>
+              <div className="grid grid-cols-5 gap-3">
+                <div className="col-span-2">
+                  <label className="block text-[10px] font-bold text-gray-400 mb-1">日期</label>
+                  <input type="date" required className="w-full bg-gray-50 border border-gray-200 rounded-xl px-2 py-3 text-xs font-bold focus:outline-none focus:ring-2 focus:ring-[#E5B84B]" value={bizForm.date} onChange={(e) => setBizForm({...bizForm, date: e.target.value})}/>
+                </div>
+                <div className="col-span-3">
+                  <label className="block text-[10px] font-bold text-gray-400 mb-1">品名 / 摘要</label>
+                  <input type="text" required placeholder="請輸入品名" className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-3 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-[#E5B84B]" value={bizForm.name} onChange={(e) => setBizForm({...bizForm, name: e.target.value})}/>
+                </div>
+              </div>
+              <div className="grid grid-cols-3 gap-3 items-end">
+                <div>
+                  <label className="block text-[10px] font-bold text-gray-400 mb-1">數量</label>
+                  <input type="number" step="any" required placeholder="0" className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-3 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-[#E5B84B]" value={bizForm.qty} onChange={(e) => setBizForm({...bizForm, qty: e.target.value})}/>
+                </div>
+                <div>
+                  <label className="block text-[10px] font-bold text-gray-400 mb-1">單價</label>
+                  <input type="number" step="any" required placeholder="0" className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-3 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-[#E5B84B]" value={bizForm.price} onChange={(e) => setBizForm({...bizForm, price: e.target.value})}/>
+                </div>
+                <div>
+                  <label className="block text-[10px] font-bold text-gray-400 mb-1">總金額</label>
+                  <div className="w-full bg-gray-100 border border-gray-200 rounded-xl px-3 py-3 text-sm font-black text-gray-600 flex items-center justify-between"><span>$</span><span>{currentTotal.toLocaleString()}</span></div>
+                </div>
+              </div>
+              <button type="submit" className={`w-full text-white font-bold py-3 rounded-xl transition-all active:scale-95 shadow-sm ${bizForm.type === 'income' ? 'bg-[#2C7A2C] hover:bg-[#1f591f]' : 'bg-[#D35400] hover:bg-[#a64200]'}`}>
+                <i className="fa-solid fa-check mr-1"></i> 新增此筆帳
+              </button>
+            </form>
+          </div>
+
+          <div className="mt-6">
+            <h3 className="font-bold text-gray-600 mb-3">近期明細</h3>
+            <div className="space-y-2">
+              {bizRecords.length === 0 && (
+                <div className="text-center text-gray-400 text-sm py-8 bg-white rounded-3xl border border-gray-100">尚無紀錄，開始記第一筆吧！</div>
+              )}
+              {bizRecords.map(record => (
+                <div key={record.id} className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 flex items-center justify-between relative group overflow-hidden">
+                  <div className="flex items-center gap-3">
+                    <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white flex-shrink-0 shadow-sm ${record.type === 'income' ? 'bg-[#2C7A2C]' : 'bg-[#D35400]'}`}>
+                      <i className={`fa-solid ${record.type === 'income' ? 'fa-arrow-trend-up' : 'fa-box-open'}`}></i>
+                    </div>
+                    <div>
+                      <div className="font-bold text-gray-800 text-sm">{record.name}</div>
+                      <div className="text-[10px] text-gray-400 font-bold flex items-center gap-2 mt-0.5">
+                        <span>{record.date}</span><span className="bg-gray-100 px-1.5 py-0.5 rounded text-gray-500">{record.qty} 件 @ ${record.price}</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex flex-col items-end">
+                    <div className={`font-black text-lg ${record.type === 'income' ? 'text-[#2C7A2C]' : 'text-[#D35400]'}`}>
+                      {record.type === 'income' ? '+' : '-'}${record.total.toLocaleString()}
+                    </div>
+                    <button onClick={() => removeBizRecord(record.id)} className="text-gray-300 hover:text-red-500 text-xs mt-1 active:scale-90 transition-transform p-1"><i className="fa-solid fa-trash-can"></i> 刪除</button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      );
+    };
+
+    // 5. 日曆
+    const ViewCalendar = () => (
+      <div className="p-4 pb-24 space-y-4">
+        <div className="flex justify-between items-center mb-6">
+          <h2 className="text-2xl font-black text-[#4A4A7A]">日曆帳本</h2>
+          <div className="flex items-center gap-4 bg-[#EEEDF6] text-[#4A4A7A] px-4 py-2 rounded-full font-bold">
+            <i className="fa-solid fa-chevron-left text-sm"></i><span>本月</span><i className="fa-solid fa-chevron-right text-sm"></i>
+          </div>
+        </div>
+        <div className="bg-white rounded-3xl p-5 shadow-sm border border-gray-100">
+          <div className="grid grid-cols-7 text-center text-xs font-bold text-gray-400 mb-4">
+            <div>週一</div><div>週二</div><div>週三</div><div>週四</div><div>週五</div><div>週六</div><div>週日</div>
+          </div>
+          <div className="grid grid-cols-7 text-center gap-y-4 text-sm font-bold text-gray-600">
+            <div className="opacity-0"></div><div className="opacity-0"></div>
+            <div>1</div><div>2</div><div>3</div><div>4</div><div>5</div>
+            <div>6</div><div>7</div><div>8</div><div>9</div><div>10</div><div>11</div><div>12</div>
+            <div>13</div><div>14</div><div>15</div><div>16</div><div>17</div><div>18</div><div>19</div>
+            <div>20</div><div>21</div><div>22</div><div>23</div><div>24</div>
+            <div className="bg-[#6366F1] text-white w-8 h-8 flex items-center justify-center rounded-xl mx-auto shadow-md">25</div>
+            <div>26</div><div>27</div><div>28</div><div>29</div><div>30</div><div>31</div>
+          </div>
+          <div className="flex justify-between mt-8 pt-4 border-t border-gray-100 px-4">
+            <div className="text-center"><div className="text-xs font-bold text-gray-400 mb-1">收入</div><div className="text-green-600 font-black">$0</div></div>
+            <div className="text-center"><div className="text-xs font-bold text-gray-400 mb-1">支出</div><div className="text-[#C69C6D] font-black">$0</div></div>
+            <div className="text-center"><div className="text-xs font-bold text-gray-400 mb-1">結餘</div><div className="text-gray-800 font-black">$0</div></div>
+          </div>
+        </div>
+        <div className="mt-6">
+          <h3 className="font-bold text-gray-600 mb-3">當天明細</h3>
+          <div className="bg-white border-2 border-dashed border-gray-200 rounded-3xl p-10 flex flex-col items-center justify-center text-gray-400">
+            <div className="text-4xl mb-2">📝</div><div className="font-bold text-sm">當天暫無數據</div>
+          </div>
+        </div>
+      </div>
+    );
+
+    // 6. 股票投資 (已將表單狀態內化)
+    const ViewStocks = ({ stockRecords, setStockRecords }) => {
       const [stockForm, setStockForm] = useState({ symbol: '', price: '', shares: '', fee: '' });
+      const totalInvested = stockRecords.reduce((sum, record) => sum + (record.price * record.shares + record.fee), 0);
 
       const handleStockSubmit = (e) => {
         e.preventDefault();
         if (!stockForm.symbol || !stockForm.price || !stockForm.shares) return;
-        
         const newRecord = {
-          id: Date.now(),
-          symbol: stockForm.symbol,
-          price: Number(stockForm.price),
-          shares: Number(stockForm.shares),
-          fee: Number(stockForm.fee) || 0,
-          date: new Date().toISOString().split('T')[0]
+          id: Date.now(), symbol: stockForm.symbol, price: Number(stockForm.price), shares: Number(stockForm.shares), fee: Number(stockForm.fee) || 0, date: new Date().toISOString().split('T')[0]
         };
-        
         setStockRecords([newRecord, ...stockRecords]);
         setStockForm({ symbol: '', price: '', shares: '', fee: '' });
       };
@@ -121,666 +548,89 @@
         }
       };
 
-      // --- 共用 Header ---
-      const Header = () => (
-        <div className="flex justify-between items-center p-5 bg-[#FDFCF8] sticky top-0 z-40 shadow-sm">
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-full bg-white shadow-sm flex items-center justify-center text-3xl border border-gray-100">
-              🐷
-            </div>
-            <div>
-              <h1 className="font-bold text-gray-800 text-lg flex items-center gap-1">
-                Lv.1 豬豬探索者 🌱
-              </h1>
-              <div className="h-1.5 w-32 bg-gray-200 rounded-full mt-1.5">
-                <div className="h-full bg-gray-400 rounded-full w-1/5"></div>
+      return (
+        <div className="p-4 pb-24 space-y-4">
+          <div className="bg-gradient-to-br from-indigo-500 to-purple-600 rounded-3xl p-6 shadow-md text-white relative overflow-hidden">
+            <div className="absolute -right-4 -top-4 opacity-10"><i className="fa-solid fa-chart-line text-9xl"></i></div>
+            <div className="text-indigo-100 font-bold text-sm mb-1 flex items-center gap-2 relative z-10"><i className="fa-solid fa-chart-pie"></i> 股票庫存總成本</div>
+            <div className="text-3xl font-black mb-4 relative z-10">${totalInvested.toLocaleString()}</div>
+            <p className="text-xs text-indigo-100 opacity-80 relative z-10">* 包含手續費的實際投入成本</p>
+          </div>
+          <div className="bg-white rounded-3xl p-5 shadow-sm border border-gray-100">
+            <h2 className="font-bold text-gray-800 mb-4 flex items-center gap-2"><i className="fa-solid fa-circle-plus text-indigo-500 text-lg"></i> 新增買進紀錄</h2>
+            <form onSubmit={handleStockSubmit} className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-gray-500 mb-1">股票代號/名稱</label>
+                <input type="text" required placeholder="例如: 2330 台積電" className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-indigo-500" value={stockForm.symbol} onChange={(e) => setStockForm({...stockForm, symbol: e.target.value})}/>
               </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-gray-500 mb-1">成交價</label>
+                  <input type="number" step="any" required placeholder="0.00" className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-indigo-500" value={stockForm.price} onChange={(e) => setStockForm({...stockForm, price: e.target.value})}/>
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-gray-500 mb-1">股數</label>
+                  <input type="number" required placeholder="1000" className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-indigo-500" value={stockForm.shares} onChange={(e) => setStockForm({...stockForm, shares: e.target.value})}/>
+                </div>
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-gray-500 mb-1">手續費 (選填)</label>
+                <input type="number" placeholder="20" className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-indigo-500" value={stockForm.fee} onChange={(e) => setStockForm({...stockForm, fee: e.target.value})}/>
+              </div>
+              <button type="submit" className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-xl transition-colors shadow-sm active:scale-95">計算並加入庫存</button>
+            </form>
+          </div>
+          <div className="mt-6">
+            <h3 className="font-bold text-gray-600 mb-3">持有明細</h3>
+            <div className="space-y-3">
+              {stockRecords.length === 0 && (
+                <div className="text-center text-gray-400 text-sm py-8 bg-white rounded-3xl border border-gray-100">尚無股票紀錄，趕快新增第一筆吧！</div>
+              )}
+              {stockRecords.map(record => {
+                const cost = (record.price * record.shares) + record.fee;
+                const avgPrice = cost / record.shares;
+                return (
+                  <div key={record.id} className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 flex flex-col gap-2 relative">
+                    <button onClick={() => removeStock(record.id)} className="absolute top-4 right-4 text-gray-300 hover:text-red-500 transition-colors p-2 -m-2 active:scale-90"><i className="fa-solid fa-trash-can"></i></button>
+                    <div className="flex justify-between items-center pr-6"><span className="font-bold text-gray-800 text-lg">{record.symbol}</span><span className="text-xs text-gray-400">{record.date}</span></div>
+                    <div className="grid grid-cols-3 gap-2 mt-2">
+                      <div className="bg-gray-50 p-2 rounded-lg text-center"><div className="text-[10px] text-gray-500 font-bold mb-1">股數</div><div className="font-black text-gray-700 text-sm">{record.shares}</div></div>
+                      <div className="bg-gray-50 p-2 rounded-lg text-center"><div className="text-[10px] text-gray-500 font-bold mb-1">均價(含息)</div><div className="font-black text-indigo-600 text-sm">{avgPrice.toFixed(2)}</div></div>
+                      <div className="bg-gray-50 p-2 rounded-lg text-center"><div className="text-[10px] text-gray-500 font-bold mb-1">總成本</div><div className="font-black text-gray-800 text-sm">${cost.toLocaleString()}</div></div>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </div>
-          <button className="bg-pink-100 text-pink-500 px-3 py-1.5 rounded-full text-xs font-bold flex items-center gap-1 shadow-sm active:scale-95 transition-transform">
-            <i className="fa-solid fa-screwdriver-wrench"></i> 救援
-          </button>
         </div>
       );
+    };
 
-      // --- 1. 365 存錢頁面 ---
-      const RenderSavings = () => {
-        const toggleDay = (day) => {
-          if (savedDays.includes(day)) {
-            setSavedDays(savedDays.filter(d => d !== day));
-          } else {
-            setSavedDays([...savedDays, day]);
-          }
-        };
-
-        return (
-          <div className="p-4 pb-24 space-y-4">
-            <div className="bg-[#FFF4D2] rounded-3xl p-6 shadow-sm">
-              <div className="text-[#A07043] font-bold text-sm mb-2 flex items-center gap-1">
-                🎯 365天無痛存錢法
-              </div>
-              <div className="text-3xl font-black text-gray-800 mb-6">
-                累計已存：${currentSaved.toLocaleString()}
-              </div>
-              <div className="flex justify-between text-xs font-bold text-[#A07043] mb-2">
-                <span>目標：${savingsGoal.toLocaleString()}</span>
-                <span>{Math.round((currentSaved / savingsGoal) * 100)}%</span>
-              </div>
-              <div className="h-3 w-full bg-[#F5E2A8] rounded-full overflow-hidden">
-                <div 
-                  className="h-full bg-[#E5B84B] rounded-full transition-all duration-500" 
-                  style={{ width: `${Math.min(100, (currentSaved / savingsGoal) * 100)}%` }}
-                ></div>
-              </div>
-            </div>
-
-            <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-100">
-              <h3 className="text-center font-bold text-gray-600 mb-4">每天選一個數字存錢並打卡吧！</h3>
-              <div className="grid grid-cols-7 gap-2">
-                {Array.from({ length: 365 }, (_, i) => i + 1).map(day => (
-                  <button
-                    key={day}
-                    onClick={() => toggleDay(day)}
-                    className={`aspect-square flex items-center justify-center rounded-xl font-bold text-[11px] sm:text-xs transition-colors
-                      ${savedDays.includes(day) 
-                        ? 'bg-[#E5B84B] text-white shadow-inner scale-95' 
-                        : 'bg-gray-100 text-gray-400 hover:bg-gray-200'}`}
-                  >
-                    {day}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-        );
-      };
-
-      // --- 2. 固定支出頁面 ---
-      const RenderFixedExpenses = () => {
-        const gridRef = useRef(null);
-        const [showModal, setShowModal] = useState(false);
-        const [editingId, setEditingId] = useState(null);
-        const [formData, setFormData] = useState({ name: '', amount: '', dueDate: '' });
-
-        useEffect(() => {
-          if (!gridRef.current) return;
-          const sortable = new Sortable(gridRef.current, {
-            animation: 250, delay: 200, delayOnTouchOnly: true, touchStartThreshold: 5,
-            draggable: '.expense-card', filter: 'button, .no-drag', preventOnFilter: false,
-            onUpdate: (evt) => {
-              const oldIndex = evt.oldIndex; const newIndex = evt.newIndex;
-              setFixedExpenses(prev => {
-                const newArr = [...prev];
-                const [movedItem] = newArr.splice(oldIndex, 1);
-                newArr.splice(newIndex, 0, movedItem);
-                return newArr;
-              });
-            }
-          });
-          return () => sortable.destroy();
-        }, [activeTab]);
-
-        const togglePaid = (id, e) => {
-          e.stopPropagation();
-          setFixedExpenses(fixedExpenses.map(exp => exp.id === id ? { ...exp, isPaid: !exp.isPaid } : exp));
-        };
-        const openEditModal = (exp, e) => {
-          e.stopPropagation(); setEditingId(exp.id); setFormData({ name: exp.name, amount: exp.amount, dueDate: exp.dueDate || '' }); setShowModal(true);
-        };
-        const saveExpense = (e) => {
-          e.preventDefault();
-          if (editingId) {
-            setFixedExpenses(fixedExpenses.map(exp => exp.id === editingId ? { ...exp, name: formData.name, amount: Number(formData.amount), dueDate: formData.dueDate } : exp));
-          } else {
-            setFixedExpenses([...fixedExpenses, { id: Date.now(), name: formData.name, amount: Number(formData.amount), dueDate: formData.dueDate, isPaid: false }]);
-          }
-          setShowModal(false);
-        };
-        const deleteExpense = () => {
-          if (window.confirm('確定要刪除這個支出項目嗎？')) {
-            setFixedExpenses(fixedExpenses.filter(exp => exp.id !== editingId));
-            setShowModal(false);
-          }
-        };
-        const moveItem = (direction) => {
-          const index = fixedExpenses.findIndex(exp => exp.id === editingId);
-          if (index < 0) return;
-          let newArr = [...fixedExpenses];
-          if (direction === 'up' && index > 0) {
-            [newArr[index - 1], newArr[index]] = [newArr[index], newArr[index - 1]];
-            setFixedExpenses(newArr);
-          } else if (direction === 'down' && index < newArr.length - 1) {
-            [newArr[index + 1], newArr[index]] = [newArr[index], newArr[index + 1]];
-            setFixedExpenses(newArr);
-          }
-        };
-
-        return (
-          <div className="p-4 pb-24 space-y-4">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-bold text-[#A07043] flex items-center gap-2">
-                <i className="fa-solid fa-satellite-dish text-gray-600"></i> 固定支出雷達
-              </h2>
-              <button onClick={() => {if(window.confirm('確定要將所有固定支出重置為「未付」嗎？')) setFixedExpenses(fixedExpenses.map(exp => ({ ...exp, isPaid: false })))}} className="bg-[#FFF4D2] text-[#A07043] px-3 py-1.5 rounded-full text-xs font-bold flex items-center gap-1 shadow-sm active:scale-95 transition-transform">
-                <i className="fa-solid fa-rotate-right"></i> 每月重置
-              </button>
-            </div>
-            
-            <div className="bg-[#FFF4D2] text-[#A07043] p-3 rounded-xl text-[13px] font-bold text-center mb-4 leading-relaxed shadow-sm">
-              💡 提示：長按卡片可拖曳排序。<br/>打勾作「已付紀錄」，不扣除資產喔！
-            </div>
-            <div className="grid grid-cols-3 gap-3" ref={gridRef}>
-              {fixedExpenses.map((exp) => (
-                <div key={exp.id} className="expense-card bg-white rounded-2xl p-3 shadow-sm border border-gray-100 flex flex-col justify-between relative">
-                  <button onClick={(e) => openEditModal(exp, e)} className="absolute top-0 right-0 w-10 h-10 flex items-center justify-center text-gray-300 hover:text-[#A07043] z-10 active:opacity-50">
-                    <i className="fa-solid fa-pen text-[12px]"></i>
-                  </button>
-                  <div className="mb-2 pointer-events-none pr-3 mt-1">
-                    <div className="text-gray-600 font-bold text-sm mb-1 truncate">{exp.name}</div>
-                    <div className="text-[17px] font-black text-gray-800">${exp.amount.toLocaleString()}</div>
-                    <div className="h-4 mt-1.5">
-                      {exp.dueDate && (
-                        <span className="inline-block bg-[#FFF4D2] text-[#A07043] text-[9px] px-1.5 py-0.5 rounded-md font-bold shadow-sm">
-                          期限: {exp.dueDate}號
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                  <button onClick={(e) => togglePaid(exp.id, e)} className={`w-full py-2 rounded-lg text-xs font-bold transition-all active:scale-95 ${exp.isPaid ? 'bg-[#D1F2D1] text-[#2C7A2C] shadow-inner' : 'bg-gray-100 text-gray-400'}`}>
-                    {exp.isPaid ? '✅ 已付' : '⬜ 未付'}
-                  </button>
-                </div>
-              ))}
-              <button onClick={() => {setEditingId(null); setFormData({name:'', amount:'', dueDate:''}); setShowModal(true);}} className="no-drag bg-gray-50 rounded-2xl p-3 border-2 border-dashed border-gray-200 flex flex-col items-center justify-center gap-2 text-gray-400 hover:bg-gray-100 transition-colors min-h-[120px] active:bg-gray-200">
-                <i className="fa-solid fa-plus text-xl"></i><span className="text-xs font-bold">新增支出</span>
-              </button>
-            </div>
-
-            {/* Modal */}
-            {showModal && (
-              <div className="fixed inset-0 bg-black/50 z-50 flex justify-center items-center p-4 animate-fade-in backdrop-blur-sm">
-                <div className="bg-white rounded-3xl w-full max-w-sm p-6 shadow-2xl animate-slide-up relative">
-                  <button onClick={() => setShowModal(false)} className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center bg-gray-100 text-gray-500 rounded-full font-bold active:scale-90 transition-transform">✕</button>
-                  <h3 className="text-xl font-bold text-[#A07043] mb-4 flex items-center gap-2">
-                    {editingId ? <i className="fa-solid fa-pen"></i> : <i className="fa-solid fa-plus"></i>}
-                    {editingId ? '編輯固定支出' : '新增固定支出'}
-                  </h3>
-                  <form onSubmit={saveExpense} className="space-y-4">
-                    <div>
-                      <label className="block text-xs font-bold text-gray-500 mb-1">項目名稱</label>
-                      <input type="text" placeholder="例如: 房租、電話費" className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-[#E5B84B]" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} required/>
-                    </div>
-                    <div>
-                      <label className="block text-xs font-bold text-gray-500 mb-1">每月金額</label>
-                      <input type="number" placeholder="例如: 15000" className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-[#E5B84B]" value={formData.amount} onChange={e => setFormData({...formData, amount: e.target.value})} required/>
-                    </div>
-                    <div>
-                      <label className="block text-xs font-bold text-gray-500 mb-1">最後繳費期限 (幾號) - 選填</label>
-                      <input type="number" min="1" max="31" placeholder="例如: 5" className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-[#E5B84B]" value={formData.dueDate} onChange={e => setFormData({...formData, dueDate: e.target.value})}/>
-                    </div>
-                    
-                    {editingId && (
-                      <div className="flex justify-between items-center bg-gray-50 p-2 rounded-xl mt-2 border border-gray-100">
-                        <span className="text-xs font-bold text-gray-400 pl-2">調整順序：</span>
-                        <div className="flex gap-2">
-                          <button type="button" onClick={() => moveItem('up')} className="bg-white px-3 py-1.5 rounded-lg shadow-sm text-[#A07043] font-bold text-xs border border-gray-200 active:bg-gray-100 transition-colors"><i className="fa-solid fa-arrow-up mr-1"></i> 往前移</button>
-                          <button type="button" onClick={() => moveItem('down')} className="bg-white px-3 py-1.5 rounded-lg shadow-sm text-[#A07043] font-bold text-xs border border-gray-200 active:bg-gray-100 transition-colors"><i className="fa-solid fa-arrow-down mr-1"></i> 往後移</button>
-                        </div>
-                      </div>
-                    )}
-                    <div className="pt-2 flex gap-3">
-                      {editingId && (
-                        <button type="button" onClick={deleteExpense} className="flex-1 bg-red-50 text-red-500 font-bold py-3 rounded-xl hover:bg-red-100 transition-colors active:scale-95">刪除</button>
-                      )}
-                      <button type="submit" className={`font-bold py-3 rounded-xl transition-all active:scale-95 ${editingId ? 'flex-[2]' : 'w-full'} bg-[#A07043] text-white hover:bg-[#8A5E35] shadow-md`}>
-                        {editingId ? '儲存變更' : '新增至雷達'}
-                      </button>
-                    </div>
-                  </form>
-                </div>
-              </div>
-            )}
-          </div>
-        );
-      };
-
-      // --- 3. 每日花費頁面 (還原完整版) ---
-      const RenderDaily = () => {
-        return (
-          <div className="p-4 pb-24 space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="bg-white rounded-3xl p-5 shadow-sm border border-gray-100 relative">
-                <i className="fa-solid fa-gear absolute top-4 right-4 text-gray-400 text-sm"></i>
-                <div className="text-gray-500 font-bold text-sm mb-1">現有浮動資產</div>
-                <div className="text-2xl font-black text-[#5B7B61]">${floatingAssets.toLocaleString()}</div>
-              </div>
-              <div className="bg-white rounded-3xl p-5 shadow-sm border border-gray-100 relative">
-                <div className="absolute top-4 right-4 bg-pink-100 text-pink-500 text-[10px] px-2 py-0.5 rounded font-bold">歸零</div>
-                <div className="text-gray-500 font-bold text-sm mb-1 flex items-center gap-1">本月累計支出 📉</div>
-                <div className="text-2xl font-black text-[#C69C6D]">$0</div>
-              </div>
-            </div>
-
-            <div className="flex justify-between items-center mt-6 mb-2">
-              <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
-                ✍️ 快速記開銷
-              </h2>
-              <button className="bg-gray-100 text-gray-500 px-3 py-1.5 rounded-full text-xs font-bold flex items-center gap-1">
-                <i className="fa-solid fa-gear"></i> 編輯標籤
-              </button>
-            </div>
-
-            <div className="bg-white rounded-3xl p-5 shadow-sm border border-gray-100 space-y-6">
-              <div className="flex bg-gray-100 rounded-xl p-1">
-                <button className="flex-1 bg-white shadow-sm rounded-lg py-2 font-bold text-gray-800">支出</button>
-                <button className="flex-1 rounded-lg py-2 font-bold text-gray-400">收入</button>
-              </div>
-
-              <div>
-                <div className="text-gray-500 text-sm font-bold mb-3">選擇分類：</div>
-                <div className="grid grid-cols-4 gap-4">
-                  <div className="flex flex-col items-center gap-2">
-                    <div className="w-14 h-14 rounded-full border-2 border-gray-800 flex items-center justify-center text-2xl bg-orange-50 shadow-sm">🍔</div>
-                    <span className="text-xs font-bold text-gray-800">餐飲</span>
-                  </div>
-                  <div className="flex flex-col items-center gap-2 opacity-50">
-                    <div className="w-14 h-14 rounded-full bg-pink-50 flex items-center justify-center text-2xl">🛍️</div>
-                    <span className="text-xs font-bold text-gray-500">購物</span>
-                  </div>
-                  <div className="flex flex-col items-center gap-2 opacity-50">
-                    <div className="w-14 h-14 rounded-full bg-blue-50 flex items-center justify-center text-2xl">🚗</div>
-                    <span className="text-xs font-bold text-gray-500">交通</span>
-                  </div>
-                  <div className="flex flex-col items-center gap-2 opacity-50">
-                    <div className="w-14 h-14 rounded-full bg-green-50 flex items-center justify-center text-2xl">🏠</div>
-                    <span className="text-xs font-bold text-gray-500">生活</span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex items-center justify-between bg-gray-50 p-4 rounded-2xl border border-gray-100">
-                <div className="flex items-center gap-2 text-gray-500 font-bold text-sm">
-                  <i className="fa-regular fa-calendar"></i> 記帳日期
-                </div>
-                <div className="font-black text-gray-800 bg-white px-4 py-2 rounded-xl shadow-sm border border-gray-100">
-                  今天
-                </div>
-              </div>
-            </div>
-          </div>
-        );
-      };
-
-      // --- 4. 小舖營收頁面 ---
-      const RenderBusiness = () => {
-        const totalRevenue = bizRecords.filter(r => r.type === 'income').reduce((sum, r) => sum + r.total, 0);
-        const totalCost = bizRecords.filter(r => r.type === 'cost').reduce((sum, r) => sum + r.total, 0);
-        const netProfit = totalRevenue - totalCost;
-
-        const currentTotal = (Number(bizForm.qty) || 0) * (Number(bizForm.price) || 0);
-
-        const handleBizSubmit = (e) => {
-          e.preventDefault();
-          const qty = Number(bizForm.qty);
-          const price = Number(bizForm.price);
-          if (!bizForm.name || !qty || !price) return;
-          
-          const newRecord = {
-            id: Date.now(),
-            type: bizForm.type,
-            date: bizForm.date,
-            name: bizForm.name,
-            qty: qty,
-            price: price,
-            total: qty * price
-          };
-          
-          setBizRecords([newRecord, ...bizRecords]);
-          setBizForm({ ...bizForm, name: '', qty: '', price: '' });
-        };
-
-        const removeBizRecord = (id) => {
-          if(window.confirm('確定要刪除這筆紀錄嗎？')) {
-            setBizRecords(bizRecords.filter(record => record.id !== id));
-          }
-        };
-
-        return (
-          <div className="p-4 pb-24 space-y-4">
-            <div className="grid grid-cols-2 gap-3 mb-2">
-              <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
-                <div className="text-gray-400 font-bold text-xs mb-1">本月營業額 (收)</div>
-                <div className="text-xl font-black text-[#2C7A2C]">${totalRevenue.toLocaleString()}</div>
-              </div>
-              <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
-                <div className="text-gray-400 font-bold text-xs mb-1">本月總成本 (支)</div>
-                <div className="text-xl font-black text-[#D35400]">${totalCost.toLocaleString()}</div>
-              </div>
-            </div>
-            <div className="bg-gradient-to-r from-[#A07043] to-[#C69C6D] rounded-2xl p-5 shadow-sm text-white">
-              <div className="font-bold text-sm mb-1 opacity-90 flex items-center gap-2">
-                <i className="fa-solid fa-sack-dollar"></i> 本月淨利潤 (毛利)
-              </div>
-              <div className="text-4xl font-black">
-                {netProfit >= 0 ? '+' : ''}${netProfit.toLocaleString()}
-              </div>
-            </div>
-
-            <div className="bg-white rounded-3xl p-5 shadow-sm border border-gray-100">
-              <h2 className="font-bold text-gray-800 mb-4 flex items-center gap-2">
-                <i className="fa-solid fa-pen-to-square text-[#A07043]"></i> 快速記一筆
-              </h2>
-              
-              <form onSubmit={handleBizSubmit} className="space-y-4">
-                <div className="flex bg-gray-100 rounded-xl p-1">
-                  <button type="button" onClick={() => setBizForm({...bizForm, type: 'income'})} className={`flex-1 rounded-lg py-2 text-sm font-bold transition-all shadow-sm ${bizForm.type === 'income' ? 'bg-white text-[#2C7A2C]' : 'text-gray-400 shadow-none hover:bg-gray-200'}`}>
-                    💰 記收入 (賣出)
-                  </button>
-                  <button type="button" onClick={() => setBizForm({...bizForm, type: 'cost'})} className={`flex-1 rounded-lg py-2 text-sm font-bold transition-all shadow-sm ${bizForm.type === 'cost' ? 'bg-white text-[#D35400]' : 'text-gray-400 shadow-none hover:bg-gray-200'}`}>
-                    📦 記成本 (進貨)
-                  </button>
-                </div>
-
-                <div className="grid grid-cols-5 gap-3">
-                  <div className="col-span-2">
-                    <label className="block text-[10px] font-bold text-gray-400 mb-1">日期</label>
-                    <input type="date" required className="w-full bg-gray-50 border border-gray-200 rounded-xl px-2 py-3 text-xs font-bold focus:outline-none focus:ring-2 focus:ring-[#E5B84B]" value={bizForm.date} onChange={(e) => setBizForm({...bizForm, date: e.target.value})}/>
-                  </div>
-                  <div className="col-span-3">
-                    <label className="block text-[10px] font-bold text-gray-400 mb-1">品名 / 摘要</label>
-                    <input type="text" required placeholder="請輸入品名" className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-3 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-[#E5B84B]" value={bizForm.name} onChange={(e) => setBizForm({...bizForm, name: e.target.value})}/>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-3 gap-3 items-end">
-                  <div>
-                    <label className="block text-[10px] font-bold text-gray-400 mb-1">數量</label>
-                    <input type="number" step="any" required placeholder="0" className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-3 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-[#E5B84B]" value={bizForm.qty} onChange={(e) => setBizForm({...bizForm, qty: e.target.value})}/>
-                  </div>
-                  <div>
-                    <label className="block text-[10px] font-bold text-gray-400 mb-1">單價</label>
-                    <input type="number" step="any" required placeholder="0" className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-3 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-[#E5B84B]" value={bizForm.price} onChange={(e) => setBizForm({...bizForm, price: e.target.value})}/>
-                  </div>
-                  <div>
-                    <label className="block text-[10px] font-bold text-gray-400 mb-1">總金額</label>
-                    <div className="w-full bg-gray-100 border border-gray-200 rounded-xl px-3 py-3 text-sm font-black text-gray-600 flex items-center justify-between">
-                      <span>$</span><span>{currentTotal.toLocaleString()}</span>
-                    </div>
-                  </div>
-                </div>
-
-                <button type="submit" className={`w-full text-white font-bold py-3 rounded-xl transition-all active:scale-95 shadow-sm ${bizForm.type === 'income' ? 'bg-[#2C7A2C] hover:bg-[#1f591f]' : 'bg-[#D35400] hover:bg-[#a64200]'}`}>
-                  <i className="fa-solid fa-check mr-1"></i> 新增此筆帳
-                </button>
-              </form>
-            </div>
-
-            <div className="mt-6">
-              <h3 className="font-bold text-gray-600 mb-3">近期明細</h3>
-              <div className="space-y-2">
-                {bizRecords.length === 0 && (
-                  <div className="text-center text-gray-400 text-sm py-8 bg-white rounded-3xl border border-gray-100">
-                    尚無紀錄，開始記第一筆吧！
-                  </div>
-                )}
-                {bizRecords.map(record => (
-                  <div key={record.id} className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 flex items-center justify-between relative group overflow-hidden">
-                    <div className="flex items-center gap-3">
-                      <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white flex-shrink-0 shadow-sm ${record.type === 'income' ? 'bg-[#2C7A2C]' : 'bg-[#D35400]'}`}>
-                        <i className={`fa-solid ${record.type === 'income' ? 'fa-arrow-trend-up' : 'fa-box-open'}`}></i>
-                      </div>
-                      <div>
-                        <div className="font-bold text-gray-800 text-sm">{record.name}</div>
-                        <div className="text-[10px] text-gray-400 font-bold flex items-center gap-2 mt-0.5">
-                          <span>{record.date}</span>
-                          <span className="bg-gray-100 px-1.5 py-0.5 rounded text-gray-500">{record.qty} 件 @ ${record.price}</span>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="flex flex-col items-end">
-                      <div className={`font-black text-lg ${record.type === 'income' ? 'text-[#2C7A2C]' : 'text-[#D35400]'}`}>
-                        {record.type === 'income' ? '+' : '-'}${record.total.toLocaleString()}
-                      </div>
-                      <button onClick={() => removeBizRecord(record.id)} className="text-gray-300 hover:text-red-500 text-xs mt-1 active:scale-90 transition-transform p-1">
-                        <i className="fa-solid fa-trash-can"></i> 刪除
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        );
-      };
-
-      // --- 5. 明細日曆頁面 (還原完整版) ---
-      const RenderCalendar = () => {
-        return (
-          <div className="p-4 pb-24 space-y-4">
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-2xl font-black text-[#4A4A7A]">日曆帳本</h2>
-              <div className="flex items-center gap-4 bg-[#EEEDF6] text-[#4A4A7A] px-4 py-2 rounded-full font-bold">
-                <i className="fa-solid fa-chevron-left text-sm"></i>
-                <span>本月</span>
-                <i className="fa-solid fa-chevron-right text-sm"></i>
-              </div>
-            </div>
-
-            <div className="bg-white rounded-3xl p-5 shadow-sm border border-gray-100">
-              <div className="grid grid-cols-7 text-center text-xs font-bold text-gray-400 mb-4">
-                <div>週一</div><div>週二</div><div>週三</div><div>週四</div>
-                <div>週五</div><div>週六</div><div>週日</div>
-              </div>
-              <div className="grid grid-cols-7 text-center gap-y-4 text-sm font-bold text-gray-600">
-                <div className="opacity-0"></div><div className="opacity-0"></div>
-                <div>1</div><div>2</div><div>3</div><div>4</div><div>5</div>
-                <div>6</div><div>7</div><div>8</div><div>9</div><div>10</div><div>11</div><div>12</div>
-                <div>13</div><div>14</div><div>15</div><div>16</div><div>17</div><div>18</div><div>19</div>
-                <div>20</div><div>21</div><div>22</div><div>23</div><div>24</div>
-                <div className="bg-[#6366F1] text-white w-8 h-8 flex items-center justify-center rounded-xl mx-auto shadow-md">25</div>
-                <div>26</div>
-                <div>27</div><div>28</div><div>29</div><div>30</div><div>31</div>
-              </div>
-
-              <div className="flex justify-between mt-8 pt-4 border-t border-gray-100 px-4">
-                <div className="text-center">
-                  <div className="text-xs font-bold text-gray-400 mb-1">收入</div>
-                  <div className="text-green-600 font-black">$0</div>
-                </div>
-                <div className="text-center">
-                  <div className="text-xs font-bold text-gray-400 mb-1">支出</div>
-                  <div className="text-[#C69C6D] font-black">$0</div>
-                </div>
-                <div className="text-center">
-                  <div className="text-xs font-bold text-gray-400 mb-1">結餘</div>
-                  <div className="text-gray-800 font-black">$0</div>
-                </div>
-              </div>
-            </div>
-            <div className="mt-6">
-              <h3 className="font-bold text-gray-600 mb-3">當天明細</h3>
-              <div className="bg-white border-2 border-dashed border-gray-200 rounded-3xl p-10 flex flex-col items-center justify-center text-gray-400">
-                <div className="text-4xl mb-2">📝</div>
-                <div className="font-bold text-sm">當天暫無數據</div>
-              </div>
-            </div>
-          </div>
-        );
-      };
-
-      // --- 6. 股票投資頁面 (還原完整版) ---
-      const RenderStocks = () => {
-        const totalInvested = stockRecords.reduce((sum, record) => sum + (record.price * record.shares + record.fee), 0);
-
-        return (
-          <div className="p-4 pb-24 space-y-4">
-            <div className="bg-gradient-to-br from-indigo-500 to-purple-600 rounded-3xl p-6 shadow-md text-white relative overflow-hidden">
-              <div className="absolute -right-4 -top-4 opacity-10">
-                <i className="fa-solid fa-chart-line text-9xl"></i>
-              </div>
-              <div className="text-indigo-100 font-bold text-sm mb-1 flex items-center gap-2 relative z-10">
-                <i className="fa-solid fa-chart-pie"></i> 股票庫存總成本
-              </div>
-              <div className="text-3xl font-black mb-4 relative z-10">
-                ${totalInvested.toLocaleString()}
-              </div>
-              <p className="text-xs text-indigo-100 opacity-80 relative z-10">
-                * 包含手續費的實際投入成本
-              </p>
-            </div>
-
-            <div className="bg-white rounded-3xl p-5 shadow-sm border border-gray-100">
-              <h2 className="font-bold text-gray-800 mb-4 flex items-center gap-2">
-                <i className="fa-solid fa-circle-plus text-indigo-500 text-lg"></i> 新增買進紀錄
-              </h2>
-              <form onSubmit={handleStockSubmit} className="space-y-4">
-                <div>
-                  <label className="block text-xs font-bold text-gray-500 mb-1">股票代號/名稱</label>
-                  <input 
-                    type="text" 
-                    required
-                    placeholder="例如: 2330 台積電" 
-                    className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                    value={stockForm.symbol}
-                    onChange={(e) => setStockForm({...stockForm, symbol: e.target.value})}
-                  />
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-xs font-bold text-gray-500 mb-1">成交價</label>
-                    <input 
-                      type="number"
-                      step="any" 
-                      required
-                      placeholder="0.00" 
-                      className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                      value={stockForm.price}
-                      onChange={(e) => setStockForm({...stockForm, price: e.target.value})}
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold text-gray-500 mb-1">股數</label>
-                    <input 
-                      type="number" 
-                      required
-                      placeholder="1000" 
-                      className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                      value={stockForm.shares}
-                      onChange={(e) => setStockForm({...stockForm, shares: e.target.value})}
-                    />
-                  </div>
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-gray-500 mb-1">手續費 (選填)</label>
-                  <input 
-                    type="number" 
-                    placeholder="20" 
-                    className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                    value={stockForm.fee}
-                    onChange={(e) => setStockForm({...stockForm, fee: e.target.value})}
-                  />
-                </div>
-                <button 
-                  type="submit" 
-                  className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-xl transition-colors shadow-sm active:scale-95"
-                >
-                  計算並加入庫存
-                </button>
-              </form>
-            </div>
-
-            <div className="mt-6">
-              <h3 className="font-bold text-gray-600 mb-3">持有明細</h3>
-              <div className="space-y-3">
-                {stockRecords.length === 0 && (
-                  <div className="text-center text-gray-400 text-sm py-8 bg-white rounded-3xl border border-gray-100">
-                    尚無股票紀錄，趕快新增第一筆吧！
-                  </div>
-                )}
-                {stockRecords.map(record => {
-                  const cost = (record.price * record.shares) + record.fee;
-                  const avgPrice = cost / record.shares;
-                  
-                  return (
-                    <div key={record.id} className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 flex flex-col gap-2 relative">
-                      <button 
-                        onClick={() => removeStock(record.id)}
-                        className="absolute top-4 right-4 text-gray-300 hover:text-red-500 transition-colors p-2 -m-2 active:scale-90"
-                      >
-                        <i className="fa-solid fa-trash-can"></i>
-                      </button>
-                      <div className="flex justify-between items-center pr-6">
-                        <span className="font-bold text-gray-800 text-lg">{record.symbol}</span>
-                        <span className="text-xs text-gray-400">{record.date}</span>
-                      </div>
-                      <div className="grid grid-cols-3 gap-2 mt-2">
-                        <div className="bg-gray-50 p-2 rounded-lg text-center">
-                          <div className="text-[10px] text-gray-500 font-bold mb-1">股數</div>
-                          <div className="font-black text-gray-700 text-sm">{record.shares}</div>
-                        </div>
-                        <div className="bg-gray-50 p-2 rounded-lg text-center">
-                          <div className="text-[10px] text-gray-500 font-bold mb-1">均價(含息)</div>
-                          <div className="font-black text-indigo-600 text-sm">{avgPrice.toFixed(2)}</div>
-                        </div>
-                        <div className="bg-gray-50 p-2 rounded-lg text-center">
-                          <div className="text-[10px] text-gray-500 font-bold mb-1">總成本</div>
-                          <div className="font-black text-gray-800 text-sm">${cost.toLocaleString()}</div>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          </div>
-        );
-      };
-
-      // --- 底部導航列 (6 個按鈕) ---
-      const BottomNav = () => {
-        const navItems = [
-          { id: 'savings', icon: 'fa-campground', label: '365存錢' },
-          { id: 'fixed', icon: 'fa-satellite-dish', label: '固定支出' },
-          { id: 'daily', icon: 'fa-wallet', label: '每日花費' },
-          { id: 'business', icon: 'fa-store', label: '小舖營收' },
-          { id: 'calendar', icon: 'fa-calendar', label: '明細日曆' },
-          { id: 'stocks', icon: 'fa-chart-line', label: '股票投資' },
-        ];
-
-        return (
-          <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 px-1 py-2 flex justify-around items-center shadow-[0_-4px_20px_rgba(0,0,0,0.03)] z-50">
-            <div className="w-full max-w-md mx-auto flex justify-between px-1">
-              {navItems.map(item => (
-                <button
-                  key={item.id}
-                  onClick={() => setActiveTab(item.id)}
-                  className={`flex flex-col items-center justify-center flex-1 py-1 gap-1 transition-colors
-                    ${activeTab === item.id ? 'text-[#A07043]' : 'text-gray-300'}`}
-                >
-                  <i className={`fa-solid ${item.icon} text-lg mb-0.5 ${activeTab === item.id ? 'opacity-100 scale-110' : 'opacity-60'} transition-transform`}></i>
-                  <span className={`text-[9px] font-bold whitespace-nowrap ${activeTab === item.id ? 'text-[#A07043]' : 'text-gray-400'}`}>
-                    {item.label}
-                  </span>
-                </button>
-              ))}
-            </div>
-          </div>
-        );
-      };
+    // --- 主程式 App ---
+    const App = () => {
+      // 預設停在小舖營收頁面
+      const [activeTab, setActiveTab] = useState('business'); 
+      
+      const [savedDays, setSavedDays] = useLocalStorage('piggy_saved_days', []);
+      const [fixedExpenses, setFixedExpenses] = useLocalStorage('piggy_fixed_expenses', defaultFixed);
+      const [bizRecords, setBizRecords] = useLocalStorage('piggy_biz_records', []);
+      const [stockRecords, setStockRecords] = useLocalStorage('piggy_stock_records', []);
 
       return (
         <div className="bg-[#FDFCF8] min-h-screen font-sans text-gray-800">
           <div className="max-w-md mx-auto bg-[#FDFCF8] min-h-screen relative shadow-2xl overflow-hidden flex flex-col">
             <Header />
-            <main className="flex-1 overflow-y-auto custom-scrollbar">
-              {activeTab === 'savings' && <RenderSavings />}
-              {activeTab === 'fixed' && <RenderFixedExpenses />}
-              {activeTab === 'daily' && <RenderDaily />}
-              {activeTab === 'business' && <RenderBusiness />}
-              {activeTab === 'calendar' && <RenderCalendar />}
-              {activeTab === 'stocks' && <RenderStocks />}
+            <main className="flex-1 overflow-y-auto custom-scrollbar relative">
+              {/* 改用條件渲染的方式載入獨立的組件，徹底解決失去焦點問題 */}
+              {activeTab === 'savings' && <ViewSavings savedDays={savedDays} setSavedDays={setSavedDays} />}
+              {activeTab === 'fixed' && <ViewFixed fixedExpenses={fixedExpenses} setFixedExpenses={setFixedExpenses} />}
+              {activeTab === 'daily' && <ViewDaily />}
+              {activeTab === 'business' && <ViewBusiness bizRecords={bizRecords} setBizRecords={setBizRecords} />}
+              {activeTab === 'calendar' && <ViewCalendar />}
+              {activeTab === 'stocks' && <ViewStocks stockRecords={stockRecords} setStockRecords={setStockRecords} />}
             </main>
-            <BottomNav />
+            <BottomNav activeTab={activeTab} setActiveTab={setActiveTab} />
           </div>
         </div>
       );

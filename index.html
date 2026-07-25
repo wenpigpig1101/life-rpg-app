@@ -124,7 +124,7 @@
       );
     };
 
-    // --- 各個頁面元件 (獨立出來，避免輸入時失去焦點) ---
+    // --- 各個頁面元件 ---
 
     // 1. 365 存錢
     const ViewSavings = ({ savedDays, setSavedDays }) => {
@@ -185,7 +185,6 @@
       const [editingId, setEditingId] = useState(null);
       const [formData, setFormData] = useState({ name: '', amount: '', dueDate: '' });
 
-      // 拖曳功能
       useEffect(() => {
         if (!gridRef.current) return;
         const sortable = new Sortable(gridRef.current, {
@@ -369,28 +368,48 @@
       </div>
     );
 
-    // 4. 小舖營收 (已將表單狀態內化，解決失去焦點問題)
+    // 4. 小舖營收 (針對收入/成本介面優化版)
     const ViewBusiness = ({ bizRecords, setBizRecords }) => {
+      // 表單狀態加入了 amount 專門給「記收入」時直接輸入總額使用
       const [bizForm, setBizForm] = useState({ 
-        type: 'income', date: new Date().toISOString().split('T')[0], name: '', qty: '', price: '' 
+        type: 'income', date: new Date().toISOString().split('T')[0], name: '', qty: '', price: '', amount: '' 
       });
 
       const totalRevenue = bizRecords.filter(r => r.type === 'income').reduce((sum, r) => sum + r.total, 0);
       const totalCost = bizRecords.filter(r => r.type === 'cost').reduce((sum, r) => sum + r.total, 0);
       const netProfit = totalRevenue - totalCost;
-      const currentTotal = (Number(bizForm.qty) || 0) * (Number(bizForm.price) || 0);
+      
+      // 動態計算目前這筆的總金額 (成本模式)
+      const currentCostTotal = (Number(bizForm.qty) || 0) * (Number(bizForm.price) || 0);
 
       const handleBizSubmit = (e) => {
         e.preventDefault();
-        const qty = Number(bizForm.qty);
-        const price = Number(bizForm.price);
-        if (!bizForm.name || !qty || !price) return;
+        
+        let recordTotal = 0;
+        let recordQty = '';
+        let recordPrice = '';
+
+        if (bizForm.type === 'cost') {
+          const qty = Number(bizForm.qty);
+          const price = Number(bizForm.price);
+          if (!bizForm.name || !qty || !price) return;
+          recordTotal = qty * price;
+          recordQty = qty;
+          recordPrice = price;
+        } else {
+          const amt = Number(bizForm.amount);
+          if (!bizForm.name || !amt) return;
+          recordTotal = amt;
+        }
         
         const newRecord = {
-          id: Date.now(), type: bizForm.type, date: bizForm.date, name: bizForm.name, qty: qty, price: price, total: qty * price
+          id: Date.now(), type: bizForm.type, date: bizForm.date, name: bizForm.name, 
+          qty: recordQty, price: recordPrice, total: recordTotal
         };
+        
         setBizRecords([newRecord, ...bizRecords]);
-        setBizForm({ ...bizForm, name: '', qty: '', price: '' });
+        // 記錄完成後，清空輸入框，但保留日期和收/支類型
+        setBizForm({ ...bizForm, name: '', qty: '', price: '', amount: '' });
       };
 
       const removeBizRecord = (id) => {
@@ -437,20 +456,35 @@
                   <input type="text" required placeholder="請輸入品名" className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-3 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-[#E5B84B]" value={bizForm.name} onChange={(e) => setBizForm({...bizForm, name: e.target.value})}/>
                 </div>
               </div>
-              <div className="grid grid-cols-3 gap-3 items-end">
+              
+              {/* 動態顯示欄位：記收入時只顯示營業額 */}
+              {bizForm.type === 'income' ? (
                 <div>
-                  <label className="block text-[10px] font-bold text-gray-400 mb-1">數量</label>
-                  <input type="number" step="any" required placeholder="0" className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-3 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-[#E5B84B]" value={bizForm.qty} onChange={(e) => setBizForm({...bizForm, qty: e.target.value})}/>
+                  <label className="block text-[10px] font-bold text-gray-400 mb-1">營業額 (總金額)</label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                      <span className="text-gray-400 font-bold text-sm">$</span>
+                    </div>
+                    <input type="number" step="any" required placeholder="請輸入總營業額" className="w-full bg-gray-50 border border-gray-200 rounded-xl pl-8 pr-4 py-3 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-[#2C7A2C]" value={bizForm.amount} onChange={(e) => setBizForm({...bizForm, amount: e.target.value})}/>
+                  </div>
                 </div>
-                <div>
-                  <label className="block text-[10px] font-bold text-gray-400 mb-1">單價</label>
-                  <input type="number" step="any" required placeholder="0" className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-3 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-[#E5B84B]" value={bizForm.price} onChange={(e) => setBizForm({...bizForm, price: e.target.value})}/>
+              ) : (
+                <div className="grid grid-cols-3 gap-3 items-end">
+                  <div>
+                    <label className="block text-[10px] font-bold text-gray-400 mb-1">數量</label>
+                    <input type="number" step="any" required placeholder="0" className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-3 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-[#D35400]" value={bizForm.qty} onChange={(e) => setBizForm({...bizForm, qty: e.target.value})}/>
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-bold text-gray-400 mb-1">單價</label>
+                    <input type="number" step="any" required placeholder="0" className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-3 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-[#D35400]" value={bizForm.price} onChange={(e) => setBizForm({...bizForm, price: e.target.value})}/>
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-bold text-gray-400 mb-1">總金額</label>
+                    <div className="w-full bg-gray-100 border border-gray-200 rounded-xl px-3 py-3 text-sm font-black text-gray-600 flex items-center justify-between"><span>$</span><span>{currentCostTotal.toLocaleString()}</span></div>
+                  </div>
                 </div>
-                <div>
-                  <label className="block text-[10px] font-bold text-gray-400 mb-1">總金額</label>
-                  <div className="w-full bg-gray-100 border border-gray-200 rounded-xl px-3 py-3 text-sm font-black text-gray-600 flex items-center justify-between"><span>$</span><span>{currentTotal.toLocaleString()}</span></div>
-                </div>
-              </div>
+              )}
+
               <button type="submit" className={`w-full text-white font-bold py-3 rounded-xl transition-all active:scale-95 shadow-sm ${bizForm.type === 'income' ? 'bg-[#2C7A2C] hover:bg-[#1f591f]' : 'bg-[#D35400] hover:bg-[#a64200]'}`}>
                 <i className="fa-solid fa-check mr-1"></i> 新增此筆帳
               </button>
@@ -472,7 +506,14 @@
                     <div>
                       <div className="font-bold text-gray-800 text-sm">{record.name}</div>
                       <div className="text-[10px] text-gray-400 font-bold flex items-center gap-2 mt-0.5">
-                        <span>{record.date}</span><span className="bg-gray-100 px-1.5 py-0.5 rounded text-gray-500">{record.qty} 件 @ ${record.price}</span>
+                        <span>{record.date}</span>
+                        {/* 收入不顯示件數/單價 */}
+                        {record.type === 'cost' && record.qty && record.price && (
+                          <span className="bg-gray-100 px-1.5 py-0.5 rounded text-gray-500">{record.qty} 件 @ ${record.price}</span>
+                        )}
+                        {record.type === 'income' && (
+                          <span className="bg-green-50 px-1.5 py-0.5 rounded text-[#2C7A2C]">營收</span>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -527,7 +568,7 @@
       </div>
     );
 
-    // 6. 股票投資 (已將表單狀態內化)
+    // 6. 股票投資
     const ViewStocks = ({ stockRecords, setStockRecords }) => {
       const [stockForm, setStockForm] = useState({ symbol: '', price: '', shares: '', fee: '' });
       const totalInvested = stockRecords.reduce((sum, record) => sum + (record.price * record.shares + record.fee), 0);
@@ -609,9 +650,7 @@
 
     // --- 主程式 App ---
     const App = () => {
-      // 預設停在小舖營收頁面
       const [activeTab, setActiveTab] = useState('business'); 
-      
       const [savedDays, setSavedDays] = useLocalStorage('piggy_saved_days', []);
       const [fixedExpenses, setFixedExpenses] = useLocalStorage('piggy_fixed_expenses', defaultFixed);
       const [bizRecords, setBizRecords] = useLocalStorage('piggy_biz_records', []);
@@ -622,7 +661,6 @@
           <div className="max-w-md mx-auto bg-[#FDFCF8] min-h-screen relative shadow-2xl overflow-hidden flex flex-col">
             <Header />
             <main className="flex-1 overflow-y-auto custom-scrollbar relative">
-              {/* 改用條件渲染的方式載入獨立的組件，徹底解決失去焦點問題 */}
               {activeTab === 'savings' && <ViewSavings savedDays={savedDays} setSavedDays={setSavedDays} />}
               {activeTab === 'fixed' && <ViewFixed fixedExpenses={fixedExpenses} setFixedExpenses={setFixedExpenses} />}
               {activeTab === 'daily' && <ViewDaily />}
